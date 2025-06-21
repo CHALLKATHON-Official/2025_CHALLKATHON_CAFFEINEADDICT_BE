@@ -28,15 +28,15 @@ jwt:
 # 앱 설정 (기본값)
 app:
   oauth2:
-    authorized-redirect-uris: ${AUTHORIZED_REDIRECT_URIS:http://localhost:3000/oauth2/redirect,http://localhost:8080/oauth2/redirect}
+    authorized-redirect-uris: http://localhost:3000/oauth2/redirect,http://localhost:8080/oauth2/redirect
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+    allowed-origins: http://localhost:3000,http://localhost:8080
   cookie:
     refresh-token:
-      name: ${COOKIE_REFRESH_TOKEN_NAME:refreshToken}
-      max-age: ${COOKIE_REFRESH_TOKEN_MAX_AGE:604800}  # 7일
-      domain: ${COOKIE_DOMAIN:localhost}
-      secure: ${COOKIE_SECURE:false}
+      name: refreshToken
+      max-age: 604800  # 7일
+      domain: localhost
+      secure: false
       http-only: true
       same-site: lax
 
