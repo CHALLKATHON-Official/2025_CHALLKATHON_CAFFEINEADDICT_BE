@@ -1,0 +1,134 @@
+name: 📋 일반 작업
+description: 개발 작업, 리팩터링, 문서화 등 일반적인 작업을 관리해주세요
+title: "[TASK]: "
+labels: ["task", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📋 일반 작업 관리
+        
+        개발 작업을 체계적으로 관리하기 위한 템플릿입니다. 작업의 목적과 범위를 명확히 해주세요.
+
+  - type: textarea
+    id: task-description
+    attributes:
+      label: 📝 작업 설명
+      description: 수행할 작업에 대해 명확하게 설명해주세요
+      placeholder: 예) UserService 클래스의 중복 코드 제거 및 메서드 분리 리팩터링
+    validations:
+      required: true
+
+  - type: dropdown
+    id: task-type
+    attributes:
+      label: 🏷️ 작업 유형
+      description: 작업의 유형을 선택해주세요
+      options:
+        - 리팩터링
+        - 코드 정리
+        - 문서화
+        - 테스트 작성
+        - 설정 변경
+        - 의존성 업데이트
+        - 성능 개선
+        - 코드 리뷰 반영
+        - 기타
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 📋 우선순위
+      description: 작업의 우선순위를 선택해주세요
+      options:
+        - 높음 (블로커 해결, 급한 작업)
+        - 보통 (일반적인 개발 작업)
+        - 낮음 (시간 날 때 처리해도 되는 작업)
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: 🎯 작업 범위
+      description: 어떤 파일, 모듈, 기능이 영향을 받는지 명시해주세요
+      placeholder: |
+        - 영향 받는 파일: UserService.kt, UserRepository.kt
+        - 영향 받는 모듈: auth, domain/user
+        - 변경되는 API: 없음 (내부 리팩터링)
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: ✅ 세부 작업 목록
+      description: 완료해야 할 세부 작업들을 체크리스트로 작성해주세요
+      placeholder: |
+        - [ ] UserService에서 중복된 검증 로직 공통 메서드로 추출
+        - [ ] 긴 메서드들을 의미 단위로 분리
+        - [ ] 불필요한 임포트 정리
+        - [ ] 관련 테스트 코드 수정
+        - [ ] 코드 문서 업데이트
+      value: |
+        - [ ] 
+        - [ ] 
+        - [ ] 
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 🎯 완료 조건
+      description: 작업이 완료되었다고 판단할 수 있는 조건들을 명시해주세요
+      placeholder: |
+        - 모든 기존 테스트가 통과
+        - 코드 커버리지 유지 또는 향상
+        - Ktlint/Detekt 규칙 준수
+        - 코드 리뷰 승인 완료
+
+  - type: dropdown
+    id: estimated-time
+    attributes:
+      label: ⏱️ 예상 소요 시간
+      description: 작업 완료까지 예상되는 시간을 선택해주세요
+      options:
+        - 1시간 이내
+        - 반나절 (2-4시간)
+        - 하루 (1일)
+        - 2-3일
+        - 1주일 이상
+        - 잘 모르겠음
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 📝 참고사항
+      description: 작업 시 주의할 점이나 참고할 정보가 있다면 작성해주세요
+      placeholder: |
+        - 기존 API 호환성 유지 필요
+        - UserController의 의존성 주입 방식 변경 금지
+        - 관련 이슈: #123
+
+  - type: textarea
+    id: related-issues
+    attributes:
+      label: 🔗 관련 이슈
+      description: 이 작업과 관련된 다른 이슈나 PR이 있다면 링크를 추가해주세요
+      placeholder: |
+        - 관련 이슈: #123, #456
+        - 참고 PR: #789
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ 체크리스트
+      description: 작업 이슈 생성 전 확인사항
+      options:
+        - label: 작업의 목적과 범위를 명확히 정의했습니다
+          required: true
+        - label: 완료 조건을 구체적으로 명시했습니다
+          required: true
+        - label: 관련된 이슈나 PR을 확인했습니다
+          required: false

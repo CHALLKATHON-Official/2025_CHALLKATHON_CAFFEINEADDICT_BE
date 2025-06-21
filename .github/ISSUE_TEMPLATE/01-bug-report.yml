@@ -1,0 +1,111 @@
+name: 🐛 버그 리포트
+description: 버그나 예상과 다른 동작을 신고해주세요
+title: "[BUG]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🐛 버그 리포트 작성 가이드
+        
+        버그를 신고해주셔서 감사합니다! 문제를 빠르게 해결할 수 있도록 아래 정보를 자세히 작성해주세요.
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: 🐛 버그 설명
+      description: 발생한 버그에 대해 명확하고 간결하게 설명해주세요
+      placeholder: 예) 사용자 로그인 시 JWT 토큰이 올바르게 생성되지 않습니다
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: 🔄 재현 단계
+      description: 버그를 재현할 수 있는 단계를 순서대로 작성해주세요
+      placeholder: |
+        1. 애플리케이션 실행 (./gradlew bootRun)
+        2. POST /api/v1/auth/login 요청 전송
+        3. 올바른 이메일과 비밀번호 입력
+        4. 응답에서 JWT 토큰 확인
+      value: |
+        1. 
+        2. 
+        3. 
+        4. 
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: 🎯 예상 동작
+      description: 정상적으로 동작해야 하는 방식을 설명해주세요
+      placeholder: JWT 토큰이 응답에 포함되어야 합니다
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: 💥 실제 동작
+      description: 실제로 발생한 동작이나 에러 메시지를 설명해주세요
+      placeholder: 500 Internal Server Error가 발생하고 로그에 NullPointerException이 출력됩니다
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: 🌍 환경 정보
+      description: 버그가 발생한 환경을 선택해주세요
+      options:
+        - 로컬 개발 환경 (local)
+        - 개발 서버 (dev)
+        - 테스트 환경 (test)
+        - 운영 환경 (prod)
+        - 기타
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 📱 버전 정보
+      description: 애플리케이션 버전이나 커밋 해시
+      placeholder: v1.0.0 또는 커밋 해시 abc123
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 📋 로그 및 에러 메시지
+      description: 관련된 로그나 에러 메시지가 있다면 첨부해주세요
+      placeholder: |
+        ```
+        2024-06-21 10:30:15 ERROR [http-nio-8080-exec-1] c.c.c.auth.service.AuthService : JWT token generation failed
+        java.lang.NullPointerException: secret key is null
+        ```
+      render: shell
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: 📚 추가 정보
+      description: 기타 도움이 될 만한 정보나 스크린샷이 있다면 첨부해주세요
+      placeholder: 추가적인 컨텍스트나 관련 정보
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ 체크리스트
+      description: 버그 리포트 제출 전 확인사항
+      options:
+        - label: 기존 이슈에서 동일한 버그가 신고되지 않았는지 확인했습니다
+          required: true
+        - label: 버그를 재현할 수 있는 최소한의 단계를 포함했습니다
+          required: true
+        - label: 관련 로그나 에러 메시지를 첨부했습니다
+          required: false

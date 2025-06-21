@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: 📚 문서 및 가이드
+    url: https://github.com/your-org/caffeine/blob/main/README.md
+    about: 프로젝트 설정, 개발 가이드, 컨벤션 등은 README를 확인해주세요
+
+  - name: 💬 질문 및 토론
+    url: https://github.com/your-org/caffeine/discussions
+    about: 기술적 질문이나 아이디어 토론은 Discussions를 이용해주세요
+
+  - name: 🔒 보안 이슈 신고
+    url: mailto:security@your-domain.com
+    about: 보안 관련 이슈는 이메일로 비공개 신고해주세요
