@@ -38,9 +38,20 @@ jobs:
         with:
           images: ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
+            # 브랜치 이름 태그 (main, develop 등)
             type=ref,event=branch
+
+            # PR 태그 (pr-5 형식)
             type=ref,event=pr
-            type=sha,prefix={{branch}}-
+
+            # 브랜치-SHA 태그 (main 브랜치일 때만)
+            type=raw,value=main-{{sha}},enable=${{ github.ref == 'refs/heads/main' }}
+
+            # develop-SHA 태그 (develop 브랜치일 때만)
+            type=raw,value=develop-{{sha}},enable=${{ github.ref == 'refs/heads/develop' }}
+
+            # PR-SHA 태그 (PR일 때만)
+            type=raw,value=pr-${{github.event.number}}-{{sha}},enable=${{ github.event_name == 'pull_request' }}
 
       - name: 🏗️ Build and push Docker image
         uses: docker/build-push-action@v6.10.0
