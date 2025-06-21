@@ -21,7 +21,7 @@ This is a Spring Boot application written in Kotlin for the 2025 CHALLKATHON_CAF
 ## Key Architecture
 
 - **Main Application**: `src/main/kotlin/com/challkathon/caffeine/CaffeineApplication.kt`
-- **Package Structure**: `com.challkathon.caffeine`
+- **Package Structure**: `com.challkathon.momento`
 - **Resources**: `src/main/resources/` (application.yml is currently empty)
 - **Database**: MySQL connector configured
 - **Security**: OAuth2 client and Spring Security enabled

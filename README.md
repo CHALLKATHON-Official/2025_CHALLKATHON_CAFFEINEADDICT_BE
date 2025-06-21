@@ -18,6 +18,7 @@
 ## 🎯 프로젝트 개요
 
 ### 기술 스택
+
 - **Framework**: Spring Boot 3.5.3
 - **Language**: Kotlin 1.9.25
 - **Java**: 17
@@ -27,6 +28,7 @@
 - **Documentation**: Swagger/OpenAPI 3.0
 
 ### 주요 특징
+
 - **DDD (Domain Driven Design)** 아키텍처 적용
 - **모듈형 패키지 구조**로 확장성 보장
 - **OAuth2 통합 인증** (소셜 로그인 지원)
@@ -38,6 +40,7 @@
 ## 🏗️ 프로젝트 구조
 
 ### 디렉터리 구조
+
 ```
 src/main/kotlin/com/challkathon/caffeine/
 ├── CaffeineApplication.kt                     # 메인 애플리케이션
@@ -81,6 +84,7 @@ src/main/kotlin/com/challkathon/caffeine/
 ### 아키텍처 원칙
 
 #### 1. 레이어드 아키텍처 + DDD 하이브리드
+
 ```
 ┌─────────────────────────────────────┐
 │         Presentation Layer          │  ← Controller (REST API)
@@ -94,17 +98,20 @@ src/main/kotlin/com/challkathon/caffeine/
 ```
 
 #### 2. 모듈별 책임 분리
+
 - **`auth/`**: 인증, 인가, 보안 관련 모든 로직
 - **`domain/`**: 핵심 비즈니스 로직 및 도메인 모델
 - **`global/`**: 전역 설정, 공통 컴포넌트, 횡단 관심사
 - **`infrastructure/`**: 외부 시스템 연동 및 데이터 접근
 
 #### 3. 의존성 규칙
+
 ```
 auth/ ────────────┐
                  ├──→ domain/ ←──── infrastructure/
 global/ ─────────┘
 ```
+
 - `domain/`는 다른 계층에 의존하지 않음
 - `auth/`, `global/`은 `domain/`에만 의존
 - `infrastructure/`는 `domain/` 인터페이스를 구현
@@ -116,6 +123,7 @@ global/ ─────────┘
 ### Kotlin 코딩 스타일
 
 #### 1. 클래스 및 인터페이스
+
 ```kotlin
 // ✅ Good
 @Entity
@@ -147,6 +155,7 @@ class User(
 ```
 
 #### 2. 함수 및 변수명
+
 ```kotlin
 // ✅ Good - 명확하고 의미있는 이름
 fun findUserByEmailAndStatus(email: String, status: UserStatus): User?
@@ -160,6 +169,7 @@ private val expTime: Duration = Duration.ofHours(24)
 ```
 
 #### 3. 널 안전성
+
 ```kotlin
 // ✅ Good - 명시적 널 처리
 fun processUser(userId: String?): UserResponse {
@@ -178,6 +188,7 @@ fun processUser(userId: String?): UserResponse {
 ```
 
 #### 4. 데이터 클래스 및 DTO
+
 ```kotlin
 // ✅ Good
 data class CreateUserRequest(
@@ -220,6 +231,7 @@ data class UserResponse(
 ### Spring Boot 컨벤션
 
 #### 1. 컨트롤러
+
 ```kotlin
 // ✅ Good
 @RestController
@@ -251,6 +263,7 @@ class UserController(
 ```
 
 #### 2. 서비스
+
 ```kotlin
 // ✅ Good
 @Service
@@ -295,6 +308,7 @@ class UserService(
 ```
 
 #### 3. 리포지토리
+
 ```kotlin
 // ✅ Good
 @Repository
@@ -370,20 +384,22 @@ class UserService {
 ```
 
 #### 1. 커밋 타입
-| Type | 설명 | 예시 |
-|------|------|------|
-| `feat` | 새로운 기능 추가 | `feat(auth): JWT 토큰 인증 구현` |
-| `fix` | 버그 수정 | `fix(user): 이메일 중복 검증 오류 수정` |
-| `docs` | 문서 변경 | `docs: API 문서 업데이트` |
-| `style` | 코드 포맷팅, 세미콜론 추가 등 | `style: 코틀린 코드 스타일 적용` |
-| `refactor` | 기능 변경 없는 코드 리팩터링 | `refactor(service): UserService 메서드 분리` |
-| `test` | 테스트 코드 추가/수정 | `test(auth): JWT 토큰 검증 테스트 추가` |
-| `chore` | 빌드 프로세스, 도구 설정 변경 | `chore: Gradle 의존성 업데이트` |
-| `perf` | 성능 개선 | `perf(db): 사용자 조회 쿼리 최적화` |
-| `ci` | CI/CD 설정 변경 | `ci: GitHub Actions 워크플로우 추가` |
-| `build` | 빌드 시스템 변경 | `build: Dockerfile 최적화` |
+
+| Type       | 설명                | 예시                                      |
+|------------|-------------------|-----------------------------------------|
+| `feat`     | 새로운 기능 추가         | `feat(auth): JWT 토큰 인증 구현`              |
+| `fix`      | 버그 수정             | `fix(user): 이메일 중복 검증 오류 수정`            |
+| `docs`     | 문서 변경             | `docs: API 문서 업데이트`                     |
+| `style`    | 코드 포맷팅, 세미콜론 추가 등 | `style: 코틀린 코드 스타일 적용`                  |
+| `refactor` | 기능 변경 없는 코드 리팩터링  | `refactor(service): UserService 메서드 분리` |
+| `test`     | 테스트 코드 추가/수정      | `test(auth): JWT 토큰 검증 테스트 추가`          |
+| `chore`    | 빌드 프로세스, 도구 설정 변경 | `chore: Gradle 의존성 업데이트`                |
+| `perf`     | 성능 개선             | `perf(db): 사용자 조회 쿼리 최적화`               |
+| `ci`       | CI/CD 설정 변경       | `ci: GitHub Actions 워크플로우 추가`           |
+| `build`    | 빌드 시스템 변경         | `build: Dockerfile 최적화`                 |
 
 #### 2. 스코프 (선택사항)
+
 ```
 feat(auth): OAuth2 로그인 구현
 fix(user): 프로필 업데이트 버그 수정  
@@ -394,6 +410,7 @@ test(domain): User 엔티티 테스트 추가
 #### 3. 커밋 메시지 작성 규칙
 
 **✅ Good Examples:**
+
 ```bash
 feat(auth): JWT 토큰 기반 인증 시스템 구현
 
@@ -419,6 +436,7 @@ test(auth): AuthService 단위 테스트 추가
 ```
 
 **❌ Bad Examples:**
+
 ```bash
 update user service           # 타입 누락, 설명 부족
 Fix bug                      # 대문자 시작, 구체성 부족
@@ -429,6 +447,7 @@ feat: add new feature        # 기능에 대한 구체적 설명 없음
 ### 브랜치 전략
 
 #### Git Flow 기반 브랜치 관리
+
 ```
 main (production)
 ├── develop (development)
@@ -440,6 +459,7 @@ main (production)
 ```
 
 #### 브랜치 네이밍 규칙
+
 ```bash
 # 기능 개발
 feature/기능명-구체적설명
@@ -468,6 +488,7 @@ release/v1.1.0
 ## 🛠️ 개발 환경 설정
 
 ### 필수 요구사항
+
 - **Java**: OpenJDK 17+
 - **Kotlin**: 1.9.25+
 - **MySQL**: 8.0+
@@ -476,6 +497,7 @@ release/v1.1.0
 ### 로컬 개발 환경 구축
 
 #### 1. 프로젝트 클론 및 빌드
+
 ```bash
 # 프로젝트 클론
 git clone <repository-url>
@@ -489,6 +511,7 @@ cd caffeine
 ```
 
 #### 2. 데이터베이스 설정
+
 ```sql
 -- MySQL 데이터베이스 생성
 CREATE DATABASE caffeine_local CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -500,6 +523,7 @@ FLUSH PRIVILEGES;
 #### 3. 환경 설정 파일
 
 **`src/main/resources/application.yml`** (공통 설정)
+
 ```yaml
 spring:
   profiles:
@@ -530,6 +554,7 @@ management:
 ```
 
 **`src/main/resources/application-local.yml`** (로컬 개발)
+
 ```yaml
 spring:
   datasource:
@@ -565,7 +590,7 @@ spring:
 
 logging:
   level:
-    com.challkathon.caffeine: debug
+    com.challkathon.momento: debug
     org.springframework.security: debug
     org.hibernate.SQL: debug
     org.hibernate.type.descriptor.sql.BasicBinder: trace
@@ -574,6 +599,7 @@ logging:
 #### 4. IDE 설정 (IntelliJ IDEA)
 
 **Kotlin 코드 스타일 설정:**
+
 ```
 File → Settings → Editor → Code Style → Kotlin
 - Indentation: 4 spaces
@@ -583,6 +609,7 @@ File → Settings → Editor → Code Style → Kotlin
 ```
 
 **Live Templates 추가:**
+
 ```kotlin
 // Kotlin Class Template
 class $CLASS_NAME$ {
@@ -609,6 +636,7 @@ class $SERVICE_NAME$(
 ### Docker를 이용한 개발 환경
 
 **`docker-compose.yml`**
+
 ```yaml
 version: '3.8'
 
@@ -655,6 +683,7 @@ docker-compose up -d
 ### 테스트 전략
 
 #### 1. 테스트 피라미드
+
 ```
     🔺 E2E Tests (5%)
       Integration Tests (15%)  
@@ -662,6 +691,7 @@ docker-compose up -d
 ```
 
 #### 2. 테스트 커버리지 목표
+
 - **전체**: 80% 이상
 - **도메인 계층**: 90% 이상
 - **서비스 계층**: 85% 이상
@@ -670,6 +700,7 @@ docker-compose up -d
 #### 3. 테스트 작성 가이드
 
 **단위 테스트 (Unit Test)**
+
 ```kotlin
 @ExtendWith(MockKExtension::class)
 class UserServiceTest {
@@ -732,6 +763,7 @@ class UserServiceTest {
 ```
 
 **통합 테스트 (Integration Test)**
+
 ```kotlin
 @SpringBootTest
 @ActiveProfiles("test")
@@ -778,6 +810,7 @@ class UserIntegrationTest(
 ```
 
 **API 테스트 (Controller Test)**
+
 ```kotlin
 @WebMvcTest(UserController::class)
 @Import(SecurityConfig::class)
@@ -869,6 +902,7 @@ class UserControllerTest {
 #### 1. 정적 분석 도구 설정
 
 **`build.gradle.kts`에 추가:**
+
 ```kotlin
 plugins {
     id("org.jlleitschuh.gradle.ktlint") version "11.6.1"
@@ -919,6 +953,7 @@ tasks.jacocoTestCoverageVerification {
 ```
 
 #### 2. 코드 품질 검사 명령어
+
 ```bash
 # 코드 포맷팅 검사
 ./gradlew ktlintCheck
@@ -940,6 +975,7 @@ tasks.jacocoTestCoverageVerification {
 ### Swagger UI 설정
 
 #### 1. 의존성 설정 (`build.gradle.kts`)
+
 ```kotlin
 dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.2.0")
@@ -947,6 +983,7 @@ dependencies {
 ```
 
 #### 2. Swagger 설정 클래스
+
 ```kotlin
 @Configuration
 @EnableWebSecurity
@@ -998,6 +1035,7 @@ class SwaggerConfig {
 ```
 
 #### 3. API 문서화 어노테이션 활용
+
 ```kotlin
 @RestController
 @RequestMapping("/api/v1/users")
@@ -1062,6 +1100,7 @@ class UserController(
 ```
 
 ### API 문서 접근
+
 - **Swagger UI**: `http://localhost:8080/swagger-ui/index.html`
 - **OpenAPI JSON**: `http://localhost:8080/v3/api-docs`
 - **OpenAPI YAML**: `http://localhost:8080/v3/api-docs.yaml`
@@ -1073,12 +1112,14 @@ class UserController(
 ### 코드 리뷰 체크리스트
 
 #### 📋 기본 체크사항
+
 - [ ] **빌드 성공**: 로컬에서 `./gradlew build` 성공 확인
 - [ ] **테스트 통과**: 모든 기존 테스트 통과 및 신규 테스트 작성
 - [ ] **코드 스타일**: Ktlint, Detekt 규칙 준수
 - [ ] **커밋 메시지**: Conventional Commits 형식 준수
 
 #### 🔍 코드 품질 체크사항
+
 - [ ] **단일 책임 원칙**: 클래스/함수가 하나의 책임만 담당
 - [ ] **의존성 주입**: 생성자 주입 방식 사용
 - [ ] **예외 처리**: 적절한 예외 처리 및 로깅
@@ -1087,12 +1128,14 @@ class UserController(
 - [ ] **의미있는 이름**: 변수, 함수, 클래스명이 의도를 명확히 표현
 
 #### 🏗️ 아키텍처 체크사항
+
 - [ ] **계층 분리**: 각 계층의 책임이 명확히 구분
 - [ ] **의존성 방향**: 상위 계층이 하위 계층에만 의존
 - [ ] **도메인 중심**: 비즈니스 로직이 도메인 계층에 집중
 - [ ] **API 일관성**: RESTful API 설계 원칙 준수
 
 #### 🔒 보안 체크사항
+
 - [ ] **인증/인가**: 적절한 권한 검증 로직
 - [ ] **입력 검증**: 사용자 입력 데이터 검증
 - [ ] **민감정보**: 로그나 응답에 민감정보 노출 방지
@@ -1130,6 +1173,7 @@ class UserController(
 ### 이슈 템플릿
 
 #### 🐛 버그 리포트
+
 ```markdown
 ## 🐛 버그 설명
 <!-- 발생한 버그에 대해 명확하고 간결하게 설명해주세요 -->
@@ -1159,6 +1203,7 @@ class UserController(
 ```
 
 #### ✨ 기능 요청
+
 ```markdown
 ## 🎯 기능 설명
 <!-- 원하는 기능에 대해 명확하고 간결하게 설명해주세요 -->
@@ -1179,20 +1224,23 @@ class UserController(
 ### 팀 커뮤니케이션 가이드
 
 #### 📅 정기 미팅
+
 - **데일리 스탠드업**: 매일 오전 10시 (15분)
-  - 어제 한 일
-  - 오늘 할 일  
-  - 블로커나 도움이 필요한 부분
+    - 어제 한 일
+    - 오늘 할 일
+    - 블로커나 도움이 필요한 부분
 - **스프린트 계획**: 매주 월요일 (1시간)
 - **회고**: 매주 금요일 (30분)
 
 #### 💬 커뮤니케이션 채널
+
 - **Slack**: 일상적인 소통
 - **GitHub**: 코드 리뷰, 이슈 트래킹
 - **Notion**: 문서화, 회의록
 - **Figma**: UI/UX 디자인 리뷰
 
 #### 🚨 긴급 상황 대응
+
 1. **즉시 알림**: Slack `@channel` 멘션
 2. **이슈 생성**: GitHub에서 `bug` 라벨로 이슈 생성
 3. **핫픽스 브랜치**: `hotfix/` 브랜치로 빠른 수정
@@ -1205,6 +1253,7 @@ class UserController(
 ### 환경별 설정
 
 #### 개발 환경 (Development)
+
 ```yaml
 # application-dev.yml
 spring:
@@ -1217,11 +1266,12 @@ spring:
 
 logging:
   level:
-    com.challkathon.caffeine: info
+    com.challkathon.momento: info
     org.springframework.security: warn
 ```
 
-#### 운영 환경 (Production)  
+#### 운영 환경 (Production)
+
 ```yaml
 # application-prod.yml
 spring:
@@ -1240,13 +1290,14 @@ jwt:
 
 logging:
   level:
-    com.challkathon.caffeine: warn
+    com.challkathon.momento: warn
     org.springframework.security: error
 ```
 
 ### Docker 배포
 
 **`Dockerfile`**
+
 ```dockerfile
 FROM openjdk:17-jdk-slim
 
@@ -1260,6 +1311,7 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 
 **배포 명령어**
+
 ```bash
 # 빌드
 ./gradlew bootJar
@@ -1276,15 +1328,18 @@ docker run -d -p 8080:8080 --name caffeine-app caffeine:latest
 ## 📖 참고 자료
 
 ### 공식 문서
+
 - [Spring Boot Documentation](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)
 - [Kotlin Documentation](https://kotlinlang.org/docs/)
 - [Spring Security](https://docs.spring.io/spring-security/reference/)
 
 ### 코딩 가이드
+
 - [Kotlin Coding Conventions](https://kotlinlang.org/docs/coding-conventions.html)
 - [Spring Boot Best Practices](https://springframework.guru/spring-boot-best-practices/)
 
 ### 도구
+
 - [Ktlint](https://ktlint.github.io/)
 - [Detekt](https://detekt.dev/)
 - [JaCoCo](https://www.jacoco.org/jacoco/)
@@ -1303,7 +1358,7 @@ docker run -d -p 8080:8080 --name caffeine-app caffeine:latest
 
 <div align="center">
 
-**🎯 함께 만들어가는 고품질 백엔드 서비스** 
+**🎯 함께 만들어가는 고품질 백엔드 서비스**
 
 Made with ❤️ by CAFFEINE Team
 
