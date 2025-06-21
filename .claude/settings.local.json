@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(./gradlew:*)",
+      "Bash(find:*)",
+      "Bash(rm:*)",
+      "Bash(export JWT_SECRET=\"testSecretKeyForJwtTokenGenerationThatIsLongEnoughForHmac256Algorithm\")",
+      "Bash(export SPRING_PROFILES_ACTIVE=local)",
+      "Bash(export SPRING_PROFILES_ACTIVE=test)"
     ],
     "deny": []
   }
