@@ -1,0 +1,89 @@
+spring:
+  application:
+    name: momento
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE}  # 환경 변수로 프로파일 선택, 기본값은 local
+
+  # JPA 기본 설정 (모든 환경 공통)
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        generate_statistics: false
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+
+# JWT 설정 (공통)
+jwt:
+  secret: ${JWT_SECRET}
+  issuer: momento
+  access-token-expiration: 3600000    # 1시간 (기본값)
+  refresh-token-expiration: 604800000 # 7일 (기본값)
+
+# 앱 설정 (기본값)
+app:
+  oauth2:
+    authorized-redirect-uris: http://localhost:3000/oauth2/redirect,http://localhost:8080/oauth2/redirect
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:8080
+  cookie:
+    refresh-token:
+      name: refreshToken
+      max-age: 604800  # 7일
+      domain: localhost
+      secure: false
+      http-only: true
+      same-site: lax
+
+# 서버 설정 (공통)
+server:
+  port: 8080
+  servlet:
+    context-path: /
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+  # 공통 보안 헤더
+  error:
+    include-stacktrace: never
+    include-message: always
+
+# 로깅 설정 (기본값)
+logging:
+  level:
+    com.challkathon.momento: INFO
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    root: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Swagger 설정 (공통)
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    groups-order: DESC
+    operationsSorter: method
+    disable-swagger-default-url: true
+    display-request-duration: true
+    try-it-out-enabled: true
+  api-docs:
+    path: /v3/api-docs
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json
+
+# 액추에이터 기본 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

@@ -1,0 +1,149 @@
+# EC2 배포 환경 설정
+spring:
+  # 개발 서버용 데이터베이스 설정 (Docker MySQL 컨테이너 연결)
+  datasource:
+    url: jdbc:mysql://mysql:3306/momento_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: momento_user
+    password: momento_pass
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+      pool-name: HikariCP-Dev
+      leak-detection-threshold: 60000
+
+  # JPA 설정 (운영 최적화)
+  jpa:
+    hibernate:
+      ddl-auto: update  # 개발 서버에서는 update 사용 (운영에서는 validate 권장)
+    show-sql: false   # 개발 서버에서는 SQL 로그 비활성화
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: false
+        jdbc:
+          lob:
+            non_contextual_creation: true
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+        cache:
+          use_second_level_cache: true
+          use_query_cache: true
+
+  # OAuth2 설정 (배포 환경 - 실제 도메인)
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-name: kakao
+            authorization-grant-type: authorization_code
+            redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080}/login/oauth2/code/kakao
+            client-authentication-method: client_secret_post
+            scope:
+              - profile_nickname
+              - account_email
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+# JWT 설정 (배포 환경 - 보안 강화)
+jwt:
+  access-token-expiration: 3600000    # 1시간 (운영에서는 짧게)
+  refresh-token-expiration: 604800000 # 7일
+
+# 앱 설정 (배포 환경 - GitHub Actions에서 설정)
+app:
+  oauth2:
+    authorized-redirect-uris: ${AUTHORIZED_REDIRECT_URIS:http://localhost:3000}/oauth2/redirect
+  cors:
+    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
+  cookie:
+    refresh-token:
+      domain: ${COOKIE_DOMAIN:localhost}
+      secure: true  # HTTPS 강제
+      same-site: strict  # 배포환경에서는 strict
+
+# 서버 설정 (배포용)
+server:
+  port: 8080
+  servlet:
+    session:
+      timeout: 30m
+  # 보안 헤더 강화
+  forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      remote-ip-header: x-forwarded-for
+      protocol-header: x-forwarded-proto
+
+# 로깅 설정 (배포 서버용 - 운영 최적화)
+logging:
+  level:
+    com.challkathon.momento: INFO
+    org.springframework.security: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.transaction: INFO
+    org.springframework.orm.jpa: WARN
+    org.springframework.boot.actuate: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /var/log/momento/application.log
+    max-size: 10MB
+    max-history: 30
+
+# Swagger 설정 (배포용 - 보안 고려)
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}  # 개발 환경에서는 기본적으로 활성화
+    try-it-out-enabled: true
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+
+# 액추에이터 설정 (배포용 - 최소한의 정보만 노출)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+  security:
+    enabled: true
+
+# 성능 최적화 설정
+spring.jpa.properties.hibernate:
+  connection:
+    provider_disables_autocommit: true
+  jdbc:
+    batch_size: 25
+    batch_versioned_data: true
+  query:
+    fail_on_pagination_over_collection_fetch: true
+    plan_cache_max_size: 2048
+
+# 보안 설정 강화
+server.servlet.session:
+  cookie:
+    secure: true
+    http-only: true
+    same-site: strict
+
+# 외부 API 타임아웃 설정
+spring.web.client:
+  read-timeout: 30s
+  connect-timeout: 10s
