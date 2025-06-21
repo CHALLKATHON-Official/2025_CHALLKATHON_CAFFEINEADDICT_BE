@@ -1,4 +1,4 @@
-# ☕ CAFFEINE - CHALLKATHON 2025 Backend
+# ☕ MOMENTO - CHALLKATHON 2025 Backend
 
 > Spring Boot + Kotlin 기반 고성능 백엔드 API 서버
 
