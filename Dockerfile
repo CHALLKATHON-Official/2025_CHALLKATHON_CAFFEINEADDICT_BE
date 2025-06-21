@@ -17,8 +17,8 @@ COPY src src
 # 애플리케이션 빌드
 RUN gradle bootJar --no-daemon
 
-# 프로덕션 이미지
-FROM openjdk:17-jre-slim
+# 프로덕션 이미지 - Eclipse Temurin (OpenJDK 공식 후속)
+FROM eclipse-temurin:17-jre-jammy
 
 # 비root 사용자 생성
 RUN groupadd -r momento && useradd -r -g momento momento
