@@ -1,0 +1,206 @@
+name: Docker CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  DOCKER_REGISTRY: ghcr.io
+  IMAGE_NAME: momento-server
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    name: 🏗️ Build and Push Docker Image
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔑 Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+
+      - name: 🏗️ Build and push Docker image
+        uses: docker/build-push-action@v6.10.0
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    name: 🚀 Deploy to Production
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔑 Setup SSH key
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > deploy_key.pem
+          chmod 600 deploy_key.pem
+
+      - name: 🏷️ Get image tag
+        id: image
+        run: |
+          IMAGE_TAG=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:main-${{ github.sha }}
+          echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      - name: 📝 Create deployment script
+        run: |
+          cat > deploy.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          # 환경변수 설정
+          export IMAGE_TAG="${{ steps.image.outputs.tag }}"
+          export DOMAIN_NAME="${{ secrets.DOMAIN_NAME }}"
+          export SSL_EMAIL="${{ secrets.SSL_EMAIL }}"
+          
+          # 기존 컨테이너 중지 및 정리
+          echo "🛑 Stopping existing containers..."
+          docker-compose down || true
+          
+          # 새 이미지로 docker-compose 업데이트 및 환경변수 주입
+          echo "📝 Updating docker-compose.yml with new image..."
+          sed -i "s|build:|#build:|g" docker-compose.yml
+          sed -i "s|context: .|#context: .|g" docker-compose.yml
+          sed -i "s|dockerfile: Dockerfile|#dockerfile: Dockerfile|g" docker-compose.yml
+          sed -i "/momento-server:/a\\    image: ${IMAGE_TAG}" docker-compose.yml
+          
+          # 환경변수 설정
+          echo "🔧 Setting up environment variables..."
+          export JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          export KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}"
+          export KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}"
+          export KAKAO_REDIRECT_URI="${{ secrets.KAKAO_REDIRECT_URI }}"
+          export AUTHORIZED_REDIRECT_URIS="${{ secrets.AUTHORIZED_REDIRECT_URIS }}"
+          export ALLOWED_ORIGINS="${{ secrets.ALLOWED_ORIGINS }}"
+          export COOKIE_DOMAIN="${{ secrets.COOKIE_DOMAIN }}"
+          export SWAGGER_ENABLED="${{ secrets.SWAGGER_ENABLED }}"
+          export MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}"
+          export MYSQL_DATABASE="${{ secrets.MYSQL_DATABASE }}"
+          export MYSQL_USER="${{ secrets.MYSQL_USER }}"
+          export MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}"
+          
+          # 도메인 설정 적용
+          echo "🌐 Configuring domain settings..."
+          envsubst '${DOMAIN_NAME}' < docker/nginx/conf.d/momento.conf > docker/nginx/conf.d/momento_final.conf
+          mv docker/nginx/conf.d/momento_final.conf docker/nginx/conf.d/momento.conf
+          
+          # Docker Compose 환경 변수로 실행 (sed 대신 환경 변수 활용)
+          echo "🔧 Docker Compose will use environment variables directly"
+          
+          # 새 이미지 풀 및 컨테이너 시작
+          echo "📥 Pulling new image and starting containers..."
+          docker-compose pull momento-server
+          docker-compose up -d
+          
+          # 헬스체크
+          echo "🏥 Performing health check..."
+          for i in {1..30}; do
+            if docker-compose exec -T momento-server curl -f http://localhost:8080/actuator/health; then
+              echo "✅ Health check passed!"
+              break
+            fi
+            echo "⏳ Waiting for application to start... ($i/30)"
+            sleep 10
+          done
+          
+          echo "🎉 Deployment completed successfully!"
+          EOF
+
+      - name: 🐳 Install Docker on EC2 (if needed)
+        run: |
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+            # Docker가 설치되어 있는지 확인
+            if ! command -v docker &> /dev/null; then
+              echo "🐳 Installing Docker..."
+              sudo apt-get update
+              sudo apt-get install -y ca-certificates curl gnupg lsb-release
+              sudo mkdir -p /etc/apt/keyrings
+              curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+              echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+              sudo apt-get update
+              sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+              sudo usermod -aG docker ubuntu
+              sudo systemctl enable docker
+              sudo systemctl start docker
+              echo "✅ Docker installation completed"
+            else
+              echo "✅ Docker is already installed"
+            fi
+            
+            # Docker Compose 설치 확인
+            if ! command -v docker-compose &> /dev/null; then
+              echo "🐳 Installing Docker Compose..."
+              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+              echo "✅ Docker Compose installation completed"
+            else
+              echo "✅ Docker Compose is already installed"
+            fi
+            
+            # 작업 디렉토리 생성
+            sudo mkdir -p /opt/momento
+            sudo chown ubuntu:ubuntu /opt/momento
+          EOF
+
+      - name: 📁 Deploy files to EC2
+        run: |
+          # Docker Compose 및 설정 파일들을 EC2에 직접 전송
+          scp -i deploy_key.pem -o StrictHostKeyChecking=no -r \
+            docker-compose.yml docker/ deploy.sh \
+            ubuntu@${{ secrets.EC2_HOST }}:/opt/momento/
+
+      - name: 🚀 Execute deployment on EC2
+        run: |
+          # EC2에서 배포 스크립트 실행
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no \
+            ubuntu@${{ secrets.EC2_HOST }} \
+            "cd /opt/momento && chmod +x deploy.sh && ./deploy.sh"
+
+      - name: 🧹 Cleanup SSH key
+        run: |
+          rm -f deploy_key.pem
+
+      - name: 📋 Deployment Summary
+        run: |
+          echo "🎉 **Production Deployment Successful!**"
+          echo ""
+          echo "📊 **Deployment Details:**"
+          echo "- 🌐 Application URL: https://${{ secrets.DOMAIN_NAME }}"
+          echo "- 🐳 Docker Image: ${{ steps.image.outputs.tag }}"
+          echo "- ⏰ Deployed at: $(date '+%Y-%m-%d %H:%M:%S UTC')"
+          echo "- 🔀 Branch: ${{ github.ref_name }}"
+          echo "- 📝 Commit: ${{ github.sha }}"
+
