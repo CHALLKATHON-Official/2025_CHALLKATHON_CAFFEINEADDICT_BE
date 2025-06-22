@@ -101,7 +101,7 @@ jobs:
           
           # 기존 컨테이너 중지 및 정리
           echo "🛑 Stopping existing containers..."
-          docker-compose down || true
+          docker compose down || docker-compose down || true
           
           # 새 이미지로 docker-compose 업데이트 및 환경변수 주입
           echo "📝 Updating docker-compose.yml with new image..."
@@ -139,7 +139,7 @@ jobs:
           echo "Image tag being used: ${IMAGE_TAG}"
           
           # 이미지 풀 시도
-          if ! docker-compose pull momento-server; then
+          if ! docker compose pull momento-server && ! docker-compose pull momento-server; then
             echo "❌ Failed to pull image: ${IMAGE_TAG}"
             echo "Available images:"
             docker images | grep momento-server || echo "No momento-server images found"
@@ -148,16 +148,16 @@ jobs:
           
           # 컨테이너 시작
           echo "🚀 Starting containers..."
-          docker-compose up -d
+          docker compose up -d || docker-compose up -d
           
           # 컨테이너 상태 확인
           echo "📊 Container status:"
-          docker-compose ps
+          docker compose ps || docker-compose ps
           
           # 헬스체크
           echo "🏥 Performing health check..."
           for i in {1..30}; do
-            if docker-compose exec -T momento-server curl -f http://localhost:8080/actuator/health; then
+            if docker compose exec -T momento-server curl -f http://localhost:8080/actuator/health || docker-compose exec -T momento-server curl -f http://localhost:8080/actuator/health; then
               echo "✅ Health check passed!"
               break
             fi
@@ -170,8 +170,21 @@ jobs:
 
       - name: 📁 Prepare deployment directory
         run: |
-          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} \
-            "sudo mkdir -p /opt/momento && sudo chown ubuntu:ubuntu /opt/momento"
+          ssh -i deploy_key.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.EC2_HOST }} << 'EOF'
+            # 작업 디렉토리 생성
+            sudo mkdir -p /opt/momento
+            sudo chown ubuntu:ubuntu /opt/momento
+            
+            # Docker Compose 설치 확인 및 설치
+            if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+              echo "🐳 Installing Docker Compose..."
+              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+              echo "✅ Docker Compose installation completed"
+            else
+              echo "✅ Docker Compose is already available"
+            fi
+          EOF
 
       - name: 📁 Deploy files to EC2
         run: |
