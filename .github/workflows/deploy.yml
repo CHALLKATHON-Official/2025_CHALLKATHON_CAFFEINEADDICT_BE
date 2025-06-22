@@ -63,7 +63,7 @@ jobs:
           gradlew.bat
           
     - name: Copy files to EC2
-      uses: appleboy/scp-action@v0.1.5
+      uses: appleboy/scp-action@v1.0.0
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
@@ -72,7 +72,7 @@ jobs:
         target: "/home/${{ secrets.EC2_USER }}/momento"
         
     - name: Deploy to EC2
-      uses: appleboy/ssh-action@v0.1.8
+      uses: appleboy/ssh-action@v1.2.2
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USER }}
@@ -98,7 +98,7 @@ jobs:
             echo "SSL 인증서 초기 발급..."
             
             # nginx 없이 certbot 실행
-            docker-compose run --rm certbot certonly \
+            docker compose run --rm certbot certonly \
               --webroot \
               --webroot-path=/var/www/certbot \
               --email ${{ secrets.LETSENCRYPT_EMAIL }} \
@@ -108,10 +108,10 @@ jobs:
           fi
           
           # 기존 컨테이너 중지 및 제거
-          docker-compose down || true
+          docker compose down || true
           
           # 이미지 빌드 및 컨테이너 시작
-          docker-compose up -d --build
+          docker compose up -d --build
           
           # 헬스체크 대기
           echo "서비스 시작 대기 중..."
@@ -129,7 +129,7 @@ jobs:
             
             if [ $i -eq 10 ]; then
               echo "배포 실패 - 헬스체크 실패"
-              docker-compose logs momento-server
+              docker compose logs momento-server
               exit 1
             fi
           done
