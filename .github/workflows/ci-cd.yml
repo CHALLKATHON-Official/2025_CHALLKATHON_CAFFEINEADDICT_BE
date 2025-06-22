@@ -90,12 +90,14 @@ jobs:
 
       - name: 📝 Create deployment script
         run: |
-          cat > deploy.sh << 'EOF'
+          # 이미지 태그를 스크립트에 직접 삽입
+          IMAGE_TAG="${{ steps.image.outputs.tag }}"
+          cat > deploy.sh << EOF
           #!/bin/bash
           set -e
           
           # 환경변수 설정
-          export IMAGE_TAG="${{ steps.image.outputs.tag }}"
+          export IMAGE_TAG="${IMAGE_TAG}"
           export DOMAIN_NAME="${{ secrets.DOMAIN_NAME }}"
           export SSL_EMAIL="${{ secrets.SSL_EMAIL }}"
           
@@ -103,12 +105,26 @@ jobs:
           echo "🛑 Stopping existing containers..."
           docker compose down || docker-compose down || true
           
-          # 새 이미지로 docker-compose 업데이트 및 환경변수 주입
+          # docker-compose.yml 업데이트
           echo "📝 Updating docker-compose.yml with new image..."
+          
+          # version 필드 제거 (obsolete)
+          sed -i "/^version:/d" docker-compose.yml
+          
+          # build 섹션을 image로 교체
           sed -i "s|build:|#build:|g" docker-compose.yml
           sed -i "s|context: .|#context: .|g" docker-compose.yml
           sed -i "s|dockerfile: Dockerfile|#dockerfile: Dockerfile|g" docker-compose.yml
-          sed -i "/momento-server:/a\\    image: ${IMAGE_TAG}" docker-compose.yml
+          
+          # image 필드 추가 (momento-server 서비스에)
+          if ! grep -q "image:" docker-compose.yml; then
+            sed -i "/momento-server:/a\\    image: \${IMAGE_TAG}" docker-compose.yml
+          else
+            sed -i "s|image: .*|image: \${IMAGE_TAG}|g" docker-compose.yml
+          fi
+          
+          echo "Updated docker-compose.yml content:"
+          cat docker-compose.yml
           
           # 환경변수 설정
           echo "🔧 Setting up environment variables..."
