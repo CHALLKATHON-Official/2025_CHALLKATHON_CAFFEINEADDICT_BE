@@ -67,9 +67,9 @@ jobs:
   deploy-production:
     runs-on: ubuntu-latest
     needs: build-and-push
-    name: 🚀 Deploy to Production
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: production
+    name: 🚀 Deploy to Development
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: development
     
     steps:
       - name: 📥 Checkout code
@@ -80,11 +80,13 @@ jobs:
           echo "${{ secrets.EC2_SSH_KEY }}" > deploy_key.pem
           chmod 600 deploy_key.pem
 
-      - name: 🏷️ Get image tag
+      - name: 🏷️ Get image tag  
         id: image
         run: |
-          IMAGE_TAG=${{ env.DOCKER_REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:main-${{ github.sha }}
+          # 빌드된 이미지에서 첫 번째 태그 사용
+          IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
           echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "Using image tag: ${IMAGE_TAG}"
 
       - name: 📝 Create deployment script
         run: |
@@ -110,6 +112,7 @@ jobs:
           
           # 환경변수 설정
           echo "🔧 Setting up environment variables..."
+          export SPRING_PROFILES_ACTIVE=dev
           export JWT_SECRET="${{ secrets.JWT_SECRET }}"
           export KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}"
           export KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}"
@@ -133,8 +136,23 @@ jobs:
           
           # 새 이미지 풀 및 컨테이너 시작
           echo "📥 Pulling new image and starting containers..."
-          docker-compose pull momento-server
+          echo "Image tag being used: ${IMAGE_TAG}"
+          
+          # 이미지 풀 시도
+          if ! docker-compose pull momento-server; then
+            echo "❌ Failed to pull image: ${IMAGE_TAG}"
+            echo "Available images:"
+            docker images | grep momento-server || echo "No momento-server images found"
+            exit 1
+          fi
+          
+          # 컨테이너 시작
+          echo "🚀 Starting containers..."
           docker-compose up -d
+          
+          # 컨테이너 상태 확인
+          echo "📊 Container status:"
+          docker-compose ps
           
           # 헬스체크
           echo "🏥 Performing health check..."
