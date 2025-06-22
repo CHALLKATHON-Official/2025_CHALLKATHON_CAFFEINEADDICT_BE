@@ -18,7 +18,7 @@ COPY src ./src
 RUN gradle bootJar --no-daemon
 
 # 런타임 스테이지
-FROM openjdk:17-jre-alpine
+FROM eclipse-temurin:17-jre-alpine
 
 # 로그 디렉토리 생성
 RUN mkdir -p /var/log/momento
