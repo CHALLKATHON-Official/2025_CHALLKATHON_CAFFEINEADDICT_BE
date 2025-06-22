@@ -2,9 +2,9 @@ name: Docker CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ develop ]
 
 env:
   DOCKER_REGISTRY: ghcr.io
@@ -17,6 +17,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.meta.outputs.digest }}
     
     steps:
       - name: 📥 Checkout code
@@ -83,80 +86,183 @@ jobs:
       - name: 🏷️ Get image tag  
         id: image
         run: |
-          # 빌드된 이미지에서 첫 번째 태그 사용
-          IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          # metadata 액션에서 생성된 태그 중 첫 번째 사용
+          IMAGE_TAG=$(echo "${{ needs.build-and-push.outputs.image-tag }}" | head -n1)
           echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
           echo "Using image tag: ${IMAGE_TAG}"
 
-      - name: 📝 Create deployment script
+      - name: 📝 Create deployment script with direct substitution
         run: |
-          # 이미지 태그를 스크립트에 직접 삽입
+          # 모든 환경 변수를 스크립트 생성 시점에 직접 치환
           IMAGE_TAG="${{ steps.image.outputs.tag }}"
-          cat > deploy.sh << EOF
+          DOMAIN_NAME="${{ secrets.DOMAIN_NAME }}"
+          SSL_EMAIL="${{ secrets.SSL_EMAIL }}"
+          JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}"
+          KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}"
+          KAKAO_REDIRECT_URI="${{ secrets.KAKAO_REDIRECT_URI }}"
+          AUTHORIZED_REDIRECT_URIS="${{ secrets.AUTHORIZED_REDIRECT_URIS }}"
+          ALLOWED_ORIGINS="${{ secrets.ALLOWED_ORIGINS }}"
+          COOKIE_DOMAIN="${{ secrets.COOKIE_DOMAIN }}"
+          SWAGGER_ENABLED="${{ secrets.SWAGGER_ENABLED }}"
+          MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}"
+          MYSQL_DATABASE="${{ secrets.MYSQL_DATABASE }}"
+          MYSQL_USER="${{ secrets.MYSQL_USER }}"
+          MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}"
+          
+          # 환경 변수 검증
+          echo "🔍 Validating environment variables..."
+          echo "IMAGE_TAG: ${IMAGE_TAG}"
+          echo "DOMAIN_NAME: ${DOMAIN_NAME}"
+          echo "MYSQL_DATABASE: ${MYSQL_DATABASE}"
+          
+          # Docker Compose 파일을 환경 변수로 미리 치환하여 생성
+          cat > docker-compose.deploy.yml << 'COMPOSE_EOF'
+          services:
+            momento-server:
+              image: ${IMAGE_TAG}
+              container_name: momento-server
+              restart: unless-stopped
+              ports:
+                - "8080:8080"
+              environment:
+                SPRING_PROFILES_ACTIVE: dev
+                JWT_SECRET: "${JWT_SECRET}"
+                KAKAO_CLIENT_ID: "${KAKAO_CLIENT_ID}"
+                KAKAO_CLIENT_SECRET: "${KAKAO_CLIENT_SECRET}"
+                KAKAO_REDIRECT_URI: "${KAKAO_REDIRECT_URI}"
+                AUTHORIZED_REDIRECT_URIS: "${AUTHORIZED_REDIRECT_URIS}"
+                ALLOWED_ORIGINS: "${ALLOWED_ORIGINS}"
+                COOKIE_DOMAIN: "${COOKIE_DOMAIN}"
+                SWAGGER_ENABLED: "${SWAGGER_ENABLED}"
+              depends_on:
+                mysql:
+                  condition: service_healthy
+              networks:
+                - momento-network
+              healthcheck:
+                test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+                interval: 30s
+                timeout: 10s
+                retries: 3
+                start_period: 40s
+
+            mysql:
+              image: mysql:8.0
+              container_name: momento-mysql
+              restart: unless-stopped
+              environment:
+                MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+                MYSQL_DATABASE: "${MYSQL_DATABASE}"
+                MYSQL_USER: "${MYSQL_USER}"
+                MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+                MYSQL_ROOT_HOST: '%'
+              ports:
+                - "3306:3306"
+              volumes:
+                - mysql-data:/var/lib/mysql
+                - ./docker/mysql/conf.d:/etc/mysql/conf.d
+              networks:
+                - momento-network
+              healthcheck:
+                test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+                interval: 10s
+                timeout: 5s
+                retries: 5
+                start_period: 30s
+
+            nginx:
+              image: nginx:alpine
+              container_name: momento-nginx
+              restart: unless-stopped
+              ports:
+                - "80:80"
+                - "443:443"
+              volumes:
+                - ./docker/nginx/conf.d:/etc/nginx/conf.d
+                - ./docker/nginx/ssl:/etc/nginx/ssl
+                - certbot-data:/var/www/certbot
+                - certbot-conf:/etc/letsencrypt
+              depends_on:
+                - momento-server
+              networks:
+                - momento-network
+
+            certbot:
+              image: certbot/certbot
+              container_name: momento-certbot
+              volumes:
+                - certbot-data:/var/www/certbot
+                - certbot-conf:/etc/letsencrypt
+              command: certonly --webroot --webroot-path=/var/www/certbot --email ${SSL_EMAIL} --agree-tos --no-eff-email -d ${DOMAIN_NAME}
+
+          volumes:
+            mysql-data:
+              driver: local
+            certbot-data:
+              driver: local
+            certbot-conf:
+              driver: local
+
+          networks:
+            momento-network:
+              driver: bridge
+          COMPOSE_EOF
+          
+          # 환경 변수 치환
+          envsubst < docker-compose.deploy.yml > docker-compose.final.yml
+          
+          # 배포 스크립트 생성 (모든 변수가 이미 치환됨)
+          cat > deploy.sh << 'DEPLOY_EOF'
           #!/bin/bash
           set -e
           
-          # 환경변수 설정
-          export IMAGE_TAG="${IMAGE_TAG}"
-          export DOMAIN_NAME="${{ secrets.DOMAIN_NAME }}"
-          export SSL_EMAIL="${{ secrets.SSL_EMAIL }}"
+          echo "🚀 Starting deployment process..."
           
           # 기존 컨테이너 중지 및 정리
           echo "🛑 Stopping existing containers..."
-          docker compose down || docker-compose down || true
-          
-          # docker-compose.yml 업데이트
-          echo "📝 Updating docker-compose.yml with new image..."
-          
-          # version 필드 제거 (obsolete)
-          sed -i "/^version:/d" docker-compose.yml
-          
-          # build 섹션을 image로 교체
-          sed -i "s|build:|#build:|g" docker-compose.yml
-          sed -i "s|context: .|#context: .|g" docker-compose.yml
-          sed -i "s|dockerfile: Dockerfile|#dockerfile: Dockerfile|g" docker-compose.yml
-          
-          # image 필드 추가 (momento-server 서비스에)
-          if ! grep -q "image:" docker-compose.yml; then
-            sed -i "/momento-server:/a\\    image: \${IMAGE_TAG}" docker-compose.yml
+          if command -v docker-compose &> /dev/null; then
+            docker-compose down || true
+          elif docker compose version &> /dev/null; then
+            docker compose down || true
           else
-            sed -i "s|image: .*|image: \${IMAGE_TAG}|g" docker-compose.yml
+            echo "❌ Docker Compose not found!"
+            exit 1
           fi
-          
-          echo "Updated docker-compose.yml content:"
-          cat docker-compose.yml
-          
-          # 환경변수 설정
-          echo "🔧 Setting up environment variables..."
-          export SPRING_PROFILES_ACTIVE=dev
-          export JWT_SECRET="${{ secrets.JWT_SECRET }}"
-          export KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}"
-          export KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}"
-          export KAKAO_REDIRECT_URI="${{ secrets.KAKAO_REDIRECT_URI }}"
-          export AUTHORIZED_REDIRECT_URIS="${{ secrets.AUTHORIZED_REDIRECT_URIS }}"
-          export ALLOWED_ORIGINS="${{ secrets.ALLOWED_ORIGINS }}"
-          export COOKIE_DOMAIN="${{ secrets.COOKIE_DOMAIN }}"
-          export SWAGGER_ENABLED="${{ secrets.SWAGGER_ENABLED }}"
-          export MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}"
-          export MYSQL_DATABASE="${{ secrets.MYSQL_DATABASE }}"
-          export MYSQL_USER="${{ secrets.MYSQL_USER }}"
-          export MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}"
           
           # 도메인 설정 적용
           echo "🌐 Configuring domain settings..."
-          envsubst '${DOMAIN_NAME}' < docker/nginx/conf.d/momento.conf > docker/nginx/conf.d/momento_final.conf
-          mv docker/nginx/conf.d/momento_final.conf docker/nginx/conf.d/momento.conf
+          if [ -f docker/nginx/conf.d/momento.conf ] && [ ! -z "${DOMAIN_NAME}" ]; then
+            sed "s/\${DOMAIN_NAME}/${DOMAIN_NAME}/g" docker/nginx/conf.d/momento.conf > docker/nginx/conf.d/momento_final.conf
+            mv docker/nginx/conf.d/momento_final.conf docker/nginx/conf.d/momento.conf
+          fi
           
-          # Docker Compose 환경 변수로 실행 (sed 대신 환경 변수 활용)
-          echo "🔧 Docker Compose will use environment variables directly"
+          # 최종 Docker Compose 파일 사용
+          echo "📋 Using pre-configured docker-compose.final.yml..."
+          cp docker-compose.final.yml docker-compose.yml
+          
+          echo "📋 Final docker-compose.yml content:"
+          cat docker-compose.yml
           
           # 새 이미지 풀 및 컨테이너 시작
           echo "📥 Pulling new image and starting containers..."
-          echo "Image tag being used: ${IMAGE_TAG}"
+          
+          # Docker Compose 명령어 결정
+          COMPOSE_CMD=""
+          if command -v docker-compose &> /dev/null; then
+            COMPOSE_CMD="docker-compose"
+          elif docker compose version &> /dev/null; then
+            COMPOSE_CMD="docker compose"
+          else
+            echo "❌ No Docker Compose command available!"
+            exit 1
+          fi
+          
+          echo "Using Docker Compose command: ${COMPOSE_CMD}"
           
           # 이미지 풀 시도
-          if ! docker compose pull momento-server && ! docker-compose pull momento-server; then
-            echo "❌ Failed to pull image: ${IMAGE_TAG}"
+          if ! ${COMPOSE_CMD} pull momento-server; then
+            echo "❌ Failed to pull momento-server image"
             echo "Available images:"
             docker images | grep momento-server || echo "No momento-server images found"
             exit 1
@@ -164,16 +270,16 @@ jobs:
           
           # 컨테이너 시작
           echo "🚀 Starting containers..."
-          docker compose up -d || docker-compose up -d
+          ${COMPOSE_CMD} up -d
           
           # 컨테이너 상태 확인
           echo "📊 Container status:"
-          docker compose ps || docker-compose ps
+          ${COMPOSE_CMD} ps
           
           # 헬스체크
           echo "🏥 Performing health check..."
           for i in {1..30}; do
-            if docker compose exec -T momento-server curl -f http://localhost:8080/actuator/health || docker-compose exec -T momento-server curl -f http://localhost:8080/actuator/health; then
+            if ${COMPOSE_CMD} exec -T momento-server curl -f http://localhost:8080/actuator/health 2>/dev/null; then
               echo "✅ Health check passed!"
               break
             fi
@@ -182,7 +288,11 @@ jobs:
           done
           
           echo "🎉 Deployment completed successfully!"
-          EOF
+          DEPLOY_EOF
+          
+          # 환경 변수 값들을 스크립트에 직접 치환
+          sed -i "s/\${DOMAIN_NAME}/${DOMAIN_NAME}/g" deploy.sh
+          sed -i "s/\${SSL_EMAIL}/${SSL_EMAIL}/g" deploy.sh
 
       - name: 📁 Prepare deployment directory
         run: |
@@ -191,30 +301,84 @@ jobs:
             sudo mkdir -p /opt/momento
             sudo chown ubuntu:ubuntu /opt/momento
             
+            # PATH 환경 변수 업데이트
+            export PATH="/usr/local/bin:$PATH"
+            echo 'export PATH="/usr/local/bin:$PATH"' >> ~/.bashrc
+            
             # Docker Compose 설치 확인 및 설치
-            if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-              echo "🐳 Installing Docker Compose..."
-              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-              sudo chmod +x /usr/local/bin/docker-compose
-              echo "✅ Docker Compose installation completed"
+            echo "🔍 Checking Docker Compose availability..."
+            
+            # Docker Compose V2 (docker compose) 확인
+            if docker compose version &> /dev/null; then
+              echo "✅ Docker Compose V2 (docker compose) is available"
+            # Docker Compose V1 (docker-compose) 확인
+            elif command -v docker-compose &> /dev/null; then
+              echo "✅ Docker Compose V1 (docker-compose) is available"
             else
-              echo "✅ Docker Compose is already available"
+              echo "🐳 Installing Docker Compose..."
+              # 최신 버전 다운로드
+              COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep 'tag_name' | cut -d\" -f4)
+              sudo curl -L "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+              
+              # 심볼릭 링크 생성 (PATH 보장)
+              sudo ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+              
+              # 설치 확인
+              if /usr/local/bin/docker-compose --version; then
+                echo "✅ Docker Compose installation completed: $(/usr/local/bin/docker-compose --version)"
+              else
+                echo "❌ Docker Compose installation failed"
+                exit 1
+              fi
             fi
+            
+            # 환경 정리
+            echo "🧹 Cleaning up old deployment files..."
+            cd /opt/momento
+            rm -f docker-compose.yml docker-compose.final.yml deploy.sh
           EOF
 
       - name: 📁 Deploy files to EC2
         run: |
           # Docker Compose 및 설정 파일들을 EC2에 직접 전송
           scp -i deploy_key.pem -o StrictHostKeyChecking=no -r \
-            docker-compose.yml docker/ deploy.sh \
+            docker-compose.yml docker-compose.final.yml docker/ deploy.sh \
             ubuntu@${{ secrets.EC2_HOST }}:/opt/momento/
 
       - name: 🚀 Execute deployment on EC2
         run: |
-          # EC2에서 배포 스크립트 실행
+          # EC2에서 배포 스크립트 실행 (상세 디버깅 포함)
           ssh -i deploy_key.pem -o StrictHostKeyChecking=no \
-            ubuntu@${{ secrets.EC2_HOST }} \
-            "cd /opt/momento && chmod +x deploy.sh && ./deploy.sh"
+            ubuntu@${{ secrets.EC2_HOST }} << 'DEPLOY_CMD'
+            cd /opt/momento
+            
+            echo "📋 Pre-deployment verification..."
+            echo "Current directory: $(pwd)"
+            echo "Files in directory:"
+            ls -la
+            
+            echo "🔍 Checking deploy.sh content preview:"
+            head -20 deploy.sh
+            
+            echo "🔍 Checking docker-compose.final.yml content preview:"
+            head -20 docker-compose.final.yml
+            
+            echo "🐳 Docker and Docker Compose status:"
+            docker --version
+            if command -v docker-compose &> /dev/null; then
+              echo "docker-compose: $(docker-compose --version)"
+            fi
+            if docker compose version &> /dev/null; then
+              echo "docker compose: $(docker compose version)"
+            fi
+            
+            echo "📂 Setting execute permissions and running deployment..."
+            chmod +x deploy.sh
+            
+            echo "🚀 Starting deployment execution..."
+            ./deploy.sh
+          DEPLOY_CMD
 
       - name: 🧹 Cleanup SSH key
         run: |
