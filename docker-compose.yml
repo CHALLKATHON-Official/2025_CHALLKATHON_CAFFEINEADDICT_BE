@@ -32,8 +32,8 @@ services:
     container_name: momento-mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-momento_db}
-      MYSQL_USER: ${MYSQL_USER:-momento_user}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     ports:
       - "3306:3306"
@@ -46,8 +46,7 @@ services:
       - momento-network
 
   momento-server:
-    build: .
-    image: momento-server:latest
+    image: ${DOCKER_USERNAME}/momento-server:latest  # build 대신 image 사용
     container_name: momento-server
     environment:
       SPRING_PROFILES_ACTIVE: dev
@@ -74,6 +73,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+
 
 volumes:
   mysql_data:
