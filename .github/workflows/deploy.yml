@@ -1,0 +1,147 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+    branches: [develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      
+    - name: Run tests
+      run: ./gradlew test
+      
+    - name: Build application
+      run: ./gradlew bootJar
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Create deployment package
+      run: |
+        tar -czf deploy.tar.gz \
+          Dockerfile \
+          docker-compose.yml \
+          nginx/ \
+          mysql/ \
+          src/ \
+          build.gradle.kts \
+          settings.gradle.kts \
+          gradle/ \
+          gradlew \
+          gradlew.bat
+          
+    - name: Copy files to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "deploy.tar.gz"
+        target: "/home/${{ secrets.EC2_USER }}/momento"
+        
+    - name: Deploy to EC2
+      uses: appleboy/ssh-action@v0.1.11
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd /home/${{ secrets.EC2_USER }}/momento
+          
+          # 압축 해제
+          tar -xzf deploy.tar.gz
+          rm deploy.tar.gz
+          
+          # 환경변수 설정
+          export JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          export KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}"
+          export KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}"
+          export MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}"
+          export MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}"
+          export MYSQL_DATABASE="${{ secrets.MYSQL_DATABASE }}"
+          export MYSQL_USER="${{ secrets.MYSQL_USER }}"
+          
+          # SSL 인증서 초기 발급 (최초 1회만)
+          if [ ! -f "./certbot/conf/live/dev.caffeineoverdose.shop/fullchain.pem" ]; then
+            echo "SSL 인증서 초기 발급..."
+            
+            # nginx 없이 certbot 실행
+            docker-compose run --rm certbot certonly \
+              --webroot \
+              --webroot-path=/var/www/certbot \
+              --email ${{ secrets.LETSENCRYPT_EMAIL }} \
+              --agree-tos \
+              --no-eff-email \
+              -d dev.caffeineoverdose.shop
+          fi
+          
+          # 기존 컨테이너 중지 및 제거
+          docker-compose down || true
+          
+          # 이미지 빌드 및 컨테이너 시작
+          docker-compose up -d --build
+          
+          # 헬스체크 대기
+          echo "서비스 시작 대기 중..."
+          sleep 30
+          
+          # 헬스체크 확인
+          for i in {1..10}; do
+            if curl -f https://dev.caffeineoverdose.shop/actuator/health; then
+              echo "배포 성공!"
+              break
+            else
+              echo "헬스체크 실패. 재시도 중... ($i/10)"
+              sleep 10
+            fi
+            
+            if [ $i -eq 10 ]; then
+              echo "배포 실패 - 헬스체크 실패"
+              docker-compose logs momento-server
+              exit 1
+            fi
+          done
+          
+          # 사용하지 않는 Docker 이미지 정리
+          docker image prune -f
+          
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ 배포 성공: https://dev.caffeineoverdose.shop"
+        else
+          echo "❌ 배포 실패"
+        fi

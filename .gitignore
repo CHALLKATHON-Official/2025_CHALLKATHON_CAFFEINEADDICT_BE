@@ -38,3 +38,13 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### Environment Variables ###
+.env
+.env.local
+
+### Docker ###
+certbot/
+mysql_data/
+app_logs/
+nginx_logs/
