@@ -1,4 +1,4 @@
-package com.challkathon.momento.domain.user.entity
+package com.challkathon.momento.domain.family.entity
 
 import jakarta.persistence.*
 
@@ -14,5 +14,6 @@ class Family(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "family_id", nullable = false)
     val id: Long = 0
 }
