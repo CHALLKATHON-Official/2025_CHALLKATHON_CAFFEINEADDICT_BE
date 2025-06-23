@@ -10,6 +10,7 @@ import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class CustomOAuth2UserService(
@@ -46,6 +47,7 @@ class CustomOAuth2UserService(
         return UserPrincipal.create(user, oAuth2User.attributes)
     }
 
+    @Transactional
     private fun registerNewUser(userRequest: OAuth2UserRequest, oAuth2UserInfo: OAuth2UserInfo): User {
         val authProvider = AuthProvider.valueOf(userRequest.clientRegistration.registrationId.uppercase())
 
