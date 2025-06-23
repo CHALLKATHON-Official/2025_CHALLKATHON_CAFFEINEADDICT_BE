@@ -4,6 +4,7 @@ import com.challkathon.momento.auth.exception.JwtAuthenticationException
 import com.challkathon.momento.auth.exception.code.AuthErrorStatus
 import com.challkathon.momento.auth.provider.JwtProvider
 import com.challkathon.momento.auth.service.CustomUserDetailsService
+import com.challkathon.momento.auth.util.TokenCookieUtil
 import com.challkathon.momento.global.common.BaseResponse
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.ExpiredJwtException
@@ -29,6 +30,7 @@ private val log = KotlinLogging.logger {}
 class JwtAuthenticationFilter(
     private val jwtProvider: JwtProvider,
     private val userDetailsService: CustomUserDetailsService,
+    private val tokenCookieUtil: TokenCookieUtil,
     private val objectMapper: ObjectMapper
 ) : OncePerRequestFilter() {
 
@@ -36,10 +38,11 @@ class JwtAuthenticationFilter(
 
     // 인증을 건너뛸 경로들
     private val excludedPaths = listOf(
-        "/api/v1/auth/signup",
-        "/api/v1/auth/signin",
+        "/api/v1/auth/login-info",
         "/api/v1/auth/refresh",
         "/oauth2/**",
+        "/oauth2/authorization/**",
+        "/oauth2/code/**",
         "/login/**",
         "/login/oauth2/**",
         "/swagger-ui/**",
@@ -50,11 +53,12 @@ class JwtAuthenticationFilter(
         "/webjars/**",
         "/h2-console/**",
         "/api/v1/test/public",
+        "/api/v1/test/oauth2-debug",
+        "/api/v1/test/oauth2-redirect-test",
         "/favicon.ico",
         "/error",
         "/",
-        "/profile",
-        "/oauth2/redirect" // OAuth2 리다이렉트 페이지는 인증 없이 접근 가능
+        "/actuator/**"
     )
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {
@@ -83,7 +87,8 @@ class JwtAuthenticationFilter(
         filterChain: FilterChain
     ) {
         try {
-            val jwt = getJwtFromRequest(request)
+            // Access Token은 오직 Authorization 헤더에서만 추출
+            val jwt = tokenCookieUtil.getAccessTokenFromHeader(request)
 
             // JWT가 있을 경우에만 처리
             if (!jwt.isNullOrBlank()) {
@@ -151,14 +156,6 @@ class JwtAuthenticationFilter(
         log.debug { "사용자 인증 성공: $username" }
     }
 
-    private fun getJwtFromRequest(request: HttpServletRequest): String? {
-        val bearerToken = request.getHeader("Authorization")
-        return if (bearerToken?.startsWith("Bearer ") == true) {
-            bearerToken.substring(7)
-        } else {
-            null
-        }
-    }
 
     private fun setErrorResponse(
         response: HttpServletResponse,

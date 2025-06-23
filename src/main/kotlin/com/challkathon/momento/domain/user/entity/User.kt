@@ -1,14 +1,29 @@
 package com.challkathon.momento.domain.user.entity
 
 import com.challkathon.momento.domain.character.entity.UserCharacter
+import com.challkathon.momento.domain.family.entity.Family
 import com.challkathon.momento.domain.message.entity.Message
 import com.challkathon.momento.domain.question.entity.Answer
 import com.challkathon.momento.domain.story.Story
 import com.challkathon.momento.domain.user.entity.enums.AuthProvider
-import com.challkathon.momento.domain.user.entity.enums.Role
 import com.challkathon.momento.domain.user.entity.enums.FamilyRole
+import com.challkathon.momento.domain.user.entity.enums.Role
 import com.challkathon.momento.global.common.BaseEntity
-import jakarta.persistence.*
+import jakarta.persistence.CascadeType
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.Index
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToMany
+import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
 
 @Entity
@@ -47,8 +62,11 @@ class User(
     var role: Role = Role.USER,
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "family_role", nullable = false, length = 20)
-    var familyRole: FamilyRole = FamilyRole.SON,
+    @Column(name = "family_role", nullable = true, length = 20)
+    var familyRole: FamilyRole? = null,
+
+    @Column(name = "family_role_selected", nullable = false)
+    var familyRoleSelected: Boolean = false,
 
     @Column(name = "last_login_at")
     var lastLoginAt: LocalDateTime? = null,
@@ -63,7 +81,11 @@ class User(
     var refreshTokenVersion: Long = 0,
 
     @Column(name = "refresh_token", length = 1000)
-    var refreshToken: String? = null
+    var refreshToken: String? = null,
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "family_id")
+    var family: Family? = null,
 ) : BaseEntity() {
 
     @Id
@@ -126,30 +148,18 @@ class User(
         return this.refreshToken == token
     }
 
-    companion object {
-        fun createLocalUser(
-            email: String,
-            username: String,
-            encodedPassword: String,
-            familyRole: FamilyRole
-        ): User {
-            return User(
-                email = email,
-                username = username,
-                password = encodedPassword,
-                authProvider = AuthProvider.LOCAL,
-                emailVerified = false,
-                familyRole = familyRole
-            )
-        }
+    fun updateFamilyRole(familyRole: FamilyRole) {
+        this.familyRole = familyRole
+        this.familyRoleSelected = true
+    }
 
+    companion object {
         fun createOAuth2User(
             email: String,
             username: String,
             authProvider: AuthProvider,
             providerId: String,
-            profileImageUrl: String? = null,
-            familyRole: FamilyRole
+            profileImageUrl: String? = null
         ): User {
             return User(
                 email = email,
@@ -159,7 +169,8 @@ class User(
                 profileImageUrl = profileImageUrl,
                 authProvider = authProvider,
                 emailVerified = true,
-                familyRole = familyRole
+                familyRole = null,
+                familyRoleSelected = false
             )
         }
     }

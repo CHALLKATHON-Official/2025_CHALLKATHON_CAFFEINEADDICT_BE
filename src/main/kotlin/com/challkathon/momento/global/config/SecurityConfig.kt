@@ -57,14 +57,18 @@ class SecurityConfig(
             .httpBasic { it.disable() }
             .authorizeHttpRequests { auth ->
                 auth
+                    // OAuth2 endpoints (최우선 처리)
+                    .requestMatchers(
+                        "/oauth2/authorization/**",
+                        "/oauth2/code/**", 
+                        "/login/oauth2/code/**",
+                        "/oauth2/**"
+                    ).permitAll()
                     // Public endpoints
                     .requestMatchers(
                         "/",
                         "/error",
-                        "/favicon.ico",
-                        "/login",
-                        "/profile",
-                        "/oauth2/redirect"
+                        "/favicon.ico"
                     ).permitAll()
                     // Swagger UI
                     .requestMatchers(
@@ -74,29 +78,22 @@ class SecurityConfig(
                         "/swagger-resources/**",
                         "/webjars/**"
                     ).permitAll()
-                    // OAuth2 endpoints
-                    .requestMatchers(
-                        "/oauth2/**",
-                        "/login/oauth2/**"
-                    ).permitAll()
                     // Public API endpoints
                     .requestMatchers(
-                        "/api/v1/auth/signup",
-                        "/api/v1/auth/signin",
+                        "/api/v1/auth/login-info",
                         "/api/v1/auth/refresh",
-                        "/api/v1/test/public"
+                        "/api/v1/auth/debug/**",
+                        "/api/v1/test/public",
+                        "/api/v1/test/oauth2-debug",
+                        "/api/v1/test/oauth2-redirect-test"
                     ).permitAll()
-                    // Static resources - using PathRequest for better handling
-                    .requestMatchers("/static/**").permitAll()
-                    .requestMatchers("/css/**").permitAll()
-                    .requestMatchers("/js/**").permitAll()
-                    .requestMatchers("/images/**").permitAll()
+                    // Actuator endpoints
+                    .requestMatchers("/actuator/**").permitAll()
                     // Everything else requires authentication
                     .anyRequest().authenticated()
             }
             .oauth2Login { oauth2 ->
                 oauth2
-                    .loginPage("/login")
                     .userInfoEndpoint { it.userService(customOAuth2UserService) }
                     .successHandler(oAuth2AuthenticationSuccessHandler)
                     .failureHandler(oAuth2AuthenticationFailureHandler)
