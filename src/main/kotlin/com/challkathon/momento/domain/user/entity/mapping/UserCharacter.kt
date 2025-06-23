@@ -12,7 +12,7 @@ class UserCharacter(
     val user: User,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "character_id", nullable = false)
+    @JoinColumn(name = "characters_id", nullable = false)
     val characters: Characters
 ) {
     @Id
