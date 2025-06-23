@@ -1,6 +1,5 @@
 # EC2 배포 환경 설정
 spring:
-  # 개발 서버용 데이터베이스 설정 (Docker MySQL 컨테이너 연결)
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
@@ -44,7 +43,7 @@ spring:
             client-secret: ${KAKAO_CLIENT_SECRET}
             client-name: kakao
             authorization-grant-type: authorization_code
-            redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:8080}/login/oauth2/code/kakao
+            redirect-uri: ${KAKAO_REDIRECT_URI}
             client-authentication-method: client_secret_post
             scope:
               - profile_nickname
@@ -64,12 +63,12 @@ jwt:
 # 앱 설정 (배포 환경 - GitHub Actions에서 설정)
 app:
   oauth2:
-    authorized-redirect-uris: ${AUTHORIZED_REDIRECT_URIS:http://localhost:3000}/oauth2/redirect}
+    authorized-redirect-uris: ${AUTHORIZED_REDIRECT_URIS}
   cors:
-    allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
+    allowed-origins: ${ALLOWED_ORIGINS}
   cookie:
     refresh-token:
-      domain: ${COOKIE_DOMAIN:localhost}
+      domain: ${COOKIE_DOMAIN}
       secure: true  # HTTPS 강제
       same-site: strict  # 배포환경에서는 strict
 
@@ -104,10 +103,10 @@ logging:
 # Swagger 설정 (배포용 - 보안 고려)
 springdoc:
   swagger-ui:
-    enabled: ${SWAGGER_ENABLED:true}  # 개발 환경에서는 기본적으로 활성화
+    enabled: ${SWAGGER_ENABLED}  # 개발 환경에서는 기본적으로 활성화
     try-it-out-enabled: true
   api-docs:
-    enabled: ${SWAGGER_ENABLED:true}
+    enabled: ${SWAGGER_ENABLED}
 
 # 액추에이터 설정 (배포용 - 최소한의 정보만 노출)
 management:

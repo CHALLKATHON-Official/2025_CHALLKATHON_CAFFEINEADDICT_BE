@@ -41,10 +41,31 @@ out/
 
 ### Environment Variables ###
 .env
-.env.local
+.env.*
+!.env.example
+!.env.template
 
 ### Docker ###
 certbot/
 mysql_data/
 app_logs/
 nginx_logs/
+
+### Deployment ###
+deploy.zip
+*.jar.backup
+nohup.out
+
+### Logs ###
+*.log
+logs/
+
+### OS Files ###
+.DS_Store
+Thumbs.db
+
+### Backup Files ###
+*.backup
+*.bak
+*.swp
+*~

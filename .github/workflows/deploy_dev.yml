@@ -1,0 +1,157 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main  # main 브랜치에 push될 때 실행
+      - develop  # 필요시 develop 브랜치도 추가
+  workflow_dispatch:  # 수동 실행 가능
+
+env:
+  SPRING_PROFILES_ACTIVE: dev
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. 코드 체크아웃
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. JDK 17 설정
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # 3. Gradle 캐시 설정
+      - name: Cache Gradle packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # 4. Gradle 실행 권한 부여
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      # 5. 프로젝트 빌드
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test  # 테스트는 별도로 실행하거나 제외
+
+      # 6. 빌드된 JAR 파일 확인
+      - name: Check JAR file
+        run: |
+          ls -la build/libs/
+          echo "JAR_FILE=$(ls build/libs/*.jar | grep -v plain)" >> $GITHUB_ENV
+
+      # 7. EC2에 SSH 키 파일 생성
+      - name: Create SSH key file
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+
+      # 9. 이전 애플리케이션 종료 및 백업
+      - name: Stop existing application
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            # 실행 중인 애플리케이션 PID 찾기
+            PID=$(pgrep -f "momento.*\.jar" || echo "")
+            if [ ! -z "$PID" ]; then
+              echo "Stopping existing application (PID: $PID)"
+              kill -15 $PID
+              sleep 10
+              # 프로세스가 여전히 실행 중이면 강제 종료
+              if ps -p $PID > /dev/null; then
+                kill -9 $PID
+              fi
+            else
+              echo "No existing application found"
+            fi
+          
+            # 로그 백업
+            if [ -f /home/${{ secrets.EC2_USER }}/momento/app.log ]; then
+              mv /home/${{ secrets.EC2_USER }}/momento/app.log /home/${{ secrets.EC2_USER }}/momento/app.log.$(date +%Y%m%d_%H%M%S)
+            fi
+          
+            # 디렉토리 생성
+            mkdir -p /home/${{ secrets.EC2_USER }}/momento
+          EOF
+
+      # 10. JAR 파일 전송
+      - name: Copy JAR to EC2
+        run: |
+          scp -i private_key.pem -o StrictHostKeyChecking=no ${{ env.JAR_FILE }} ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/momento/momento.jar
+
+      # 11. 애플리케이션 시작 스크립트 생성 및 실행
+      - name: Create start script and run application
+        run: |
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            cd /home/${{ secrets.EC2_USER }}/momento
+          
+            # 실행 스크립트 생성 (JVM 시스템 프로퍼티 방식)
+            cat > start.sh << 'SCRIPT'
+            #!/bin/bash
+          
+            # 애플리케이션 실행 (Spring Boot 스타일)
+            nohup java -jar \
+              -Dspring.profiles.active=dev \
+              -Dspring.datasource.url="${{ secrets.SPRING_DATASOURCE_URL }}" \
+              -Dspring.datasource.username="${{ secrets.SPRING_DATASOURCE_USERNAME }}" \
+              -Dspring.datasource.password="${{ secrets.SPRING_DATASOURCE_PASSWORD }}" \
+              -Djwt.secret="${{ secrets.JWT_SECRET }}" \
+              -Dspring.security.oauth2.client.registration.kakao.client-id="${{ secrets.KAKAO_CLIENT_ID }}" \
+              -Dspring.security.oauth2.client.registration.kakao.client-secret="${{ secrets.KAKAO_CLIENT_SECRET }}" \
+              -Dspring.security.oauth2.client.registration.kakao.redirect-uri="${{ secrets.KAKAO_REDIRECT_URI }}" \
+              -Dapp.oauth2.authorized-redirect-uris="${{ secrets.AUTHORIZED_REDIRECT_URIS }}" \
+              -Dapp.cors.allowed-origins="${{ secrets.ALLOWED_ORIGINS }}" \
+              -Dapp.cookie.refresh-token.domain="${{ secrets.COOKIE_DOMAIN }}" \
+              -Dspringdoc.swagger-ui.enabled="${{ secrets.SWAGGER_ENABLED }}" \
+              -Xms512m \
+              -Xmx1024m \
+              -XX:+UseG1GC \
+              -XX:MaxGCPauseMillis=200 \
+              -Djava.awt.headless=true \
+              -Dfile.encoding=UTF-8 \
+              -Duser.timezone=Asia/Seoul \
+              momento.jar > app.log 2>&1 &
+          
+            echo $! > app.pid
+            echo "Application started with PID: $(cat app.pid)"
+            SCRIPT
+          
+            chmod +x start.sh
+            ./start.sh
+          
+            # 애플리케이션 시작 확인 (30초 대기)
+            echo "Waiting for application to start..."
+            for i in {1..30}; do
+              if curl -s http://localhost:8080/actuator/health > /dev/null; then
+                echo "Application is running!"
+                break
+              fi
+              echo "Waiting... ($i/30)"
+              sleep 1
+            done
+          
+            # 최종 상태 확인
+            if curl -s http://localhost:8080/actuator/health > /dev/null; then
+              echo "Deployment successful!"
+              curl -s http://localhost:8080/actuator/health | jq .
+            else
+              echo "Deployment may have failed. Check logs:"
+              tail -n 50 app.log
+              exit 1
+            fi
+          EOF
+
+      # 12. SSH 키 파일 삭제
+      - name: Clean up
+        if: always()
+        run: rm -f private_key.pem
