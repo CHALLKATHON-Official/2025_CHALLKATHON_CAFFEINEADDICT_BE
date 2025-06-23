@@ -59,6 +59,10 @@ dependencies {
     kapt("com.querydsl:querydsl-apt:$queryDslVersion:jakarta")
     kapt("jakarta.annotation:jakarta.annotation-api")
     kapt("jakarta.persistence:jakarta.persistence-api")
+
+    // s3의존성 추가
+    implementation("com.amazonaws:aws-java-sdk-s3:1.12.659")
+
 }
 
 kotlin {
