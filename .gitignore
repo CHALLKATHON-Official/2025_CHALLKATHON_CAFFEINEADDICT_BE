@@ -69,3 +69,5 @@ Thumbs.db
 *.bak
 *.swp
 *~
+src/main/resources/application-dev.yml
+application-dev.yml

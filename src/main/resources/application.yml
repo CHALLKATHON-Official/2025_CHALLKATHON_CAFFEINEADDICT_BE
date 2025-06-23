@@ -20,7 +20,7 @@ spring:
 
 # JWT 설정 (공통)
 jwt:
-  secret: ${JWT_SECRET}
+  secret: dBjftJeZ4CVP+3A/vI1j3eXa9B3Yt7rmNSs9h7q4hcgUv0e7YdCkqOmx2x5XUzd9
   issuer: momento
   access-token-expiration: 3600000    # 1시간 (기본값)
   refresh-token-expiration: 604800000 # 7일 (기본값)
