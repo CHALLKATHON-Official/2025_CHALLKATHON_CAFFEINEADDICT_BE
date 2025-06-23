@@ -1,5 +1,6 @@
-package com.challkathon.momento.domain.user.entity
+package com.challkathon.momento.domain.story
 
+import com.challkathon.momento.domain.user.entity.User
 import jakarta.persistence.*
 import java.time.LocalDateTime
 
@@ -19,5 +20,6 @@ class Story(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "story_id", nullable = false)
     val id: Long = 0
 }
