@@ -2,6 +2,7 @@ package com.challkathon.momento.domain.user.entity
 
 import com.challkathon.momento.domain.user.entity.enums.AuthProvider
 import com.challkathon.momento.domain.user.entity.enums.Role
+import com.challkathon.momento.domain.user.entity.enums.FamilyRole
 import com.challkathon.momento.global.common.BaseEntity
 import jakarta.persistence.*
 import java.time.LocalDateTime
@@ -20,110 +21,116 @@ import java.time.LocalDateTime
 class User(
     @Column(nullable = false, length = 100)
     var email: String,
-    
+
     @Column(nullable = false, length = 50)
     var username: String,
-    
+
     @Column(nullable = true)
     var password: String? = null,
-    
+
     @Column(name = "provider_id", length = 100)
     var providerId: String? = null,
-    
+
     @Column(name = "profile_image_url", length = 500)
     var profileImageUrl: String? = null,
-    
+
     @Enumerated(EnumType.STRING)
     @Column(name = "auth_provider", nullable = false, length = 20)
     var authProvider: AuthProvider = AuthProvider.LOCAL,
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     var role: Role = Role.USER,
-    
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "family_role", nullable = false, length = 20)
+    var familyRole: FamilyRole = FamilyRole.SON,
+
     @Column(name = "last_login_at")
     var lastLoginAt: LocalDateTime? = null,
-    
+
     @Column(name = "email_verified")
     var emailVerified: Boolean = false,
-    
+
     @Column(name = "is_active")
     var isActive: Boolean = true,
-    
-    @Column(name = "refresh_token_version")
+
+    @Column(name = "refresh_token_version", nullable = false)
     var refreshTokenVersion: Long = 0,
-    
+
     @Column(name = "refresh_token", length = 1000)
     var refreshToken: String? = null
 ) : BaseEntity() {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
     val id: Long = 0
-    
-    // 편의 메서드들
+
     fun updateLastLogin() {
         this.lastLoginAt = LocalDateTime.now()
     }
-    
+
     fun updateProfile(username: String?, profileImageUrl: String?) {
         username?.let { this.username = it }
         profileImageUrl?.let { this.profileImageUrl = it }
     }
-    
+
     fun deactivate() {
         this.isActive = false
     }
-    
+
     fun activate() {
         this.isActive = true
     }
-    
+
     fun verifyEmail() {
         this.emailVerified = true
     }
-    
+
     fun incrementRefreshTokenVersion(): Long {
         this.refreshTokenVersion++
         return this.refreshTokenVersion
     }
-    
+
     fun updateRefreshToken(token: String) {
         this.refreshToken = token
         this.refreshTokenVersion++
     }
-    
+
     fun invalidateAllRefreshTokens() {
         this.refreshToken = null
         this.refreshTokenVersion++
     }
-    
+
     fun isRefreshTokenMatching(token: String): Boolean {
         return this.refreshToken == token
     }
-    
+
     companion object {
         fun createLocalUser(
             email: String,
             username: String,
-            encodedPassword: String
+            encodedPassword: String,
+            familyRole: FamilyRole
         ): User {
             return User(
                 email = email,
                 username = username,
                 password = encodedPassword,
                 authProvider = AuthProvider.LOCAL,
-                emailVerified = false
+                emailVerified = false,
+                familyRole = familyRole
             )
         }
-        
+
         fun createOAuth2User(
             email: String,
             username: String,
             authProvider: AuthProvider,
             providerId: String,
-            profileImageUrl: String? = null
+            profileImageUrl: String? = null,
+            familyRole: FamilyRole
         ): User {
             return User(
                 email = email,
@@ -132,7 +139,8 @@ class User(
                 providerId = providerId,
                 profileImageUrl = profileImageUrl,
                 authProvider = authProvider,
-                emailVerified = true // OAuth2 providers usually verify email
+                emailVerified = true,
+                familyRole = familyRole
             )
         }
     }
