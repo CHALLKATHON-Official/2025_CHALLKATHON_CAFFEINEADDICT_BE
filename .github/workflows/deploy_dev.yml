@@ -74,12 +74,12 @@ jobs:
             else
               echo "No existing application found"
             fi
-            
+          
             # 로그 백업
             if [ -f /home/${{ secrets.EC2_USER }}/momento/app.log ]; then
               mv /home/${{ secrets.EC2_USER }}/momento/app.log /home/${{ secrets.EC2_USER }}/momento/app.log.$(date +%Y%m%d_%H%M%S)
             fi
-            
+          
             # 디렉토리 생성
             mkdir -p /home/${{ secrets.EC2_USER }}/momento
           EOF
@@ -89,56 +89,56 @@ jobs:
         run: |
           scp -i private_key.pem -o StrictHostKeyChecking=no ${{ env.JAR_FILE }} ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/momento/momento.jar
 
-      # 10. 애플리케이션 시작 스크립트 생성
-      - name: Create start script
+      # 10. 로컬에서 start.sh 파일 생성
+      - name: Create start script locally
         run: |
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
-            cd /home/${{ secrets.EC2_USER }}/momento
-            
-            # 실행 스크립트 생성
-            cat > start.sh << 'STARTSCRIPT'
-#!/bin/bash
+          cat > start.sh << 'EOF'
+          #!/bin/bash
+          
+          echo "Starting Momento application at $(date)"
+          
+          # 애플리케이션 실행 (Spring Boot 스타일)
+          nohup java -jar \
+            -Dspring.profiles.active=dev \
+            -Dspring.datasource.url="${SPRING_DATASOURCE_URL}" \
+            -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
+            -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
+            -Djwt.secret="${JWT_SECRET}" \
+            -Dspring.security.oauth2.client.registration.kakao.client-id="${KAKAO_CLIENT_ID}" \
+            -Dspring.security.oauth2.client.registration.kakao.client-secret="${KAKAO_CLIENT_SECRET}" \
+            -Dspring.security.oauth2.client.registration.kakao.redirect-uri="${KAKAO_REDIRECT_URI}" \
+            -Dapp.oauth2.authorized-redirect-uris="${AUTHORIZED_REDIRECT_URIS}" \
+            -Dapp.cors.allowed-origins="${ALLOWED_ORIGINS}" \
+            -Dapp.cookie.refresh-token.domain="${COOKIE_DOMAIN}" \
+            -Dspringdoc.swagger-ui.enabled="${SWAGGER_ENABLED:-true}" \
+            -Xms512m \
+            -Xmx1024m \
+            -XX:+UseG1GC \
+            -XX:MaxGCPauseMillis=200 \
+            -Djava.awt.headless=true \
+            -Dfile.encoding=UTF-8 \
+            -Duser.timezone=Asia/Seoul \
+            momento.jar > app.log 2>&1 &
+          
+          PID=$!
+          echo $PID > app.pid
+          echo "Application started with PID: $PID"
+          EOF
+          
+          # 로컬에서 실행 권한 부여
+          chmod +x start.sh
+          
+          # 스크립트 내용 확인
+          echo "=== Generated start.sh content ==="
+          cat start.sh
+          echo "=== End of start.sh content ==="
 
-echo "Starting Momento application at $(date)"
+      # 11. start.sh 파일을 EC2로 전송
+      - name: Copy start script to EC2
+        run: |
+          scp -i private_key.pem -o StrictHostKeyChecking=no start.sh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/momento/start.sh
 
-# 애플리케이션 실행 (Spring Boot 스타일)
-nohup java -jar \
-  -Dspring.profiles.active=dev \
-  -Dspring.datasource.url="${SPRING_DATASOURCE_URL}" \
-  -Dspring.datasource.username="${SPRING_DATASOURCE_USERNAME}" \
-  -Dspring.datasource.password="${SPRING_DATASOURCE_PASSWORD}" \
-  -Djwt.secret="${JWT_SECRET}" \
-  -Dspring.security.oauth2.client.registration.kakao.client-id="${KAKAO_CLIENT_ID}" \
-  -Dspring.security.oauth2.client.registration.kakao.client-secret="${KAKAO_CLIENT_SECRET}" \
-  -Dspring.security.oauth2.client.registration.kakao.redirect-uri="${KAKAO_REDIRECT_URI}" \
-  -Dapp.oauth2.authorized-redirect-uris="${AUTHORIZED_REDIRECT_URIS}" \
-  -Dapp.cors.allowed-origins="${ALLOWED_ORIGINS}" \
-  -Dapp.cookie.refresh-token.domain="${COOKIE_DOMAIN}" \
-  -Dspringdoc.swagger-ui.enabled="${SWAGGER_ENABLED:-true}" \
-  -Xms512m \
-  -Xmx1024m \
-  -XX:+UseG1GC \
-  -XX:MaxGCPauseMillis=200 \
-  -Djava.awt.headless=true \
-  -Dfile.encoding=UTF-8 \
-  -Duser.timezone=Asia/Seoul \
-  momento.jar > app.log 2>&1 &
-
-PID=$!
-echo $PID > app.pid
-echo "Application started with PID: $PID"
-STARTSCRIPT
-            
-            # 스크립트에 실행 권한 부여
-            chmod +x start.sh
-            
-            # 스크립트 내용 확인 (디버깅용)
-            echo "=== Generated start.sh ==="
-            ls -la start.sh
-            echo "=== End of file list ==="
-          ENDSSH
-
-      # 11. 환경 변수 전달 및 애플리케이션 시작
+      # 12. 환경 변수 전달 및 애플리케이션 시작
       - name: Start application with environment variables
         env:
           SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
@@ -154,10 +154,11 @@ STARTSCRIPT
           SWAGGER_ENABLED: ${{ secrets.SWAGGER_ENABLED }}
         run: |
           # SSH 세션 내에서 환경 변수를 전달하여 실행
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'ENDSSH'
             cd /home/${{ secrets.EC2_USER }}/momento
-            
-            # 환경 변수 설정
+          
+            # 환경 변수 파일 생성 (보안을 위해 파일로 관리)
+            cat > .env << EOF
             export SPRING_DATASOURCE_URL="${SPRING_DATASOURCE_URL}"
             export SPRING_DATASOURCE_USERNAME="${SPRING_DATASOURCE_USERNAME}"
             export SPRING_DATASOURCE_PASSWORD="${SPRING_DATASOURCE_PASSWORD}"
@@ -169,24 +170,29 @@ STARTSCRIPT
             export ALLOWED_ORIGINS="${ALLOWED_ORIGINS}"
             export COOKIE_DOMAIN="${COOKIE_DOMAIN}"
             export SWAGGER_ENABLED="${SWAGGER_ENABLED}"
-            
-            # 애플리케이션 시작
-            echo "Starting application..."
+            EOF
+          
+            # 환경 변수 로드 및 애플리케이션 시작
+            echo "Loading environment variables and starting application..."
+            source .env
             ./start.sh
-            
+          
             # 애플리케이션 시작 확인 (30초 대기)
             echo "Waiting for application to start..."
             for i in {1..30}; do
               if curl -f -s http://localhost:8080/actuator/health > /dev/null; then
-                echo "✅ Application is running! (attempt \$i/30)"
+                echo "✅ Application is running! (attempt $i/30)"
                 echo "Health check response:"
                 curl -s http://localhost:8080/actuator/health || true
+          
+                # 환경 변수 파일 삭제 (보안)
+                rm -f .env
                 exit 0
               fi
-              echo "⏳ Waiting... (attempt \$i/30)"
+              echo "⏳ Waiting... (attempt $i/30)"
               sleep 1
             done
-            
+          
             # 시작 실패 시 디버깅 정보 출력
             echo "❌ Application failed to start after 30 seconds"
             echo ""
@@ -203,25 +209,15 @@ STARTSCRIPT
             echo "=== System resources ==="
             free -h
             df -h /
+          
+            # 실패 시에도 환경 변수 파일 삭제
+            rm -f .env
             exit 1
-          EOF
+          ENDSSH
 
-      # 12. SSH 키 파일 삭제
+      # 13. SSH 키 파일 삭제
       - name: Clean up
         if: always()
-        run: rm -f private_key.pem
-
-      # 13. Slack 알림 (선택사항)
-      - name: Send Slack notification
-        if: always() && secrets.SLACK_WEBHOOK != ''
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          text: |
-            배포 상태: ${{ job.status }}
-            브랜치: ${{ github.ref }}
-            커밋: ${{ github.sha }}
-            배포 환경: EC2 Dev Server
-          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+        run: |
+          rm -f private_key.pem
+          rm -f start.sh
