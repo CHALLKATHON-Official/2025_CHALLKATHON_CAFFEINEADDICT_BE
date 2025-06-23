@@ -64,7 +64,7 @@ jwt:
 # 앱 설정 (배포 환경 - GitHub Actions에서 설정)
 app:
   oauth2:
-    authorized-redirect-uris: ${AUTHORIZED_REDIRECT_URIS:http://localhost:3000}/oauth2/redirect
+    authorized-redirect-uris: ${AUTHORIZED_REDIRECT_URIS:http://localhost:3000}/oauth2/redirect}
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
   cookie:
@@ -100,8 +100,6 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
   file:
     name: /var/log/momento/application.log
-    max-size: 10MB
-    max-history: 30
 
 # Swagger 설정 (배포용 - 보안 고려)
 springdoc:
