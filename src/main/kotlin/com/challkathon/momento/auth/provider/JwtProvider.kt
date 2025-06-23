@@ -341,6 +341,80 @@ class JwtProvider {
             null
         }
     }
+
+    // ========== Refresh Token Rotation 관련 메서드들 ==========
+
+    /**
+     * 새로운 Access Token과 Refresh Token을 동시에 생성 (Rotation)
+     * 기존 refresh token을 무효화하고 새로운 토큰 쌍을 반환
+     */
+    fun rotateTokens(userDetails: UserDetails, newVersion: Long): TokenPair {
+        val newAccessToken = generateAccessToken(userDetails)
+        val newRefreshToken = generateRefreshToken(userDetails.username, newVersion)
+        
+        logger.debug("토큰 rotation 완료: 사용자 = ${userDetails.username}, 새 버전 = $newVersion")
+        
+        return TokenPair(
+            accessToken = newAccessToken,
+            refreshToken = newRefreshToken
+        )
+    }
+
+    /**
+     * Refresh Token 재사용 감지
+     * 동일한 토큰으로 여러 번 갱신을 시도하는 경우 감지
+     */
+    fun detectTokenReuse(token: String, currentVersion: Long): Boolean {
+        return try {
+            val tokenVersion = extractRefreshTokenVersion(token)
+            val isReused = tokenVersion != null && tokenVersion < currentVersion
+            
+            if (isReused) {
+                logger.warn("Refresh Token 재사용 감지: 토큰 버전 = $tokenVersion, 현재 버전 = $currentVersion")
+            }
+            
+            isReused
+        } catch (e: Exception) {
+            logger.warn("토큰 재사용 감지 실패: ${e.message}")
+            true // 에러 시 재사용으로 간주하여 보안 강화
+        }
+    }
+
+    /**
+     * Access Token이 곧 만료되는지 확인 (자동 갱신 트리거용)
+     * @param thresholdMinutes 만료 임계시간 (분 단위, 기본 5분)
+     */
+    fun isAccessTokenNearExpiry(token: String, thresholdMinutes: Long = 5): Boolean {
+        return try {
+            val remainingTime = getTokenRemainingTime(token)
+            val thresholdMs = thresholdMinutes * 60 * 1000
+            remainingTime <= thresholdMs
+        } catch (e: Exception) {
+            logger.warn("토큰 만료 임박 확인 실패: ${e.message}")
+            true // 에러 시 만료 임박으로 간주
+        }
+    }
+
+    /**
+     * 토큰 쌍 유효성 검증
+     * Access Token과 Refresh Token이 동일한 사용자에 대한 것인지 확인
+     */
+    fun validateTokenPair(accessToken: String, refreshToken: String): Boolean {
+        return try {
+            val accessUsername = extractUsername(accessToken)
+            val refreshUsername = extractUsername(refreshToken)
+            val accessType = extractTokenType(accessToken)
+            val refreshType = extractTokenType(refreshToken)
+            
+            accessUsername == refreshUsername && 
+            accessType == TokenType.ACCESS && 
+            refreshType == TokenType.REFRESH &&
+            !isTokenExpired(refreshToken)
+        } catch (e: Exception) {
+            logger.warn("토큰 쌍 검증 실패: ${e.message}")
+            false
+        }
+    }
 }
 
 /**
@@ -353,4 +427,12 @@ data class TokenInfo(
     val expiration: Date,
     val isExpired: Boolean,
     val remainingTime: Long
+)
+
+/**
+ * 토큰 쌍 데이터 클래스 (Rotation용)
+ */
+data class TokenPair(
+    val accessToken: String,
+    val refreshToken: String
 )

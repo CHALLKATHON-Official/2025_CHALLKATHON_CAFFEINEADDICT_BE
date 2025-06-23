@@ -23,7 +23,6 @@ class TokenCookieUtil {
 
     companion object {
         const val ACCESS_TOKEN_HEADER = "Authorization"
-        const val REFRESH_TOKEN_HEADER = "X-Refresh-Token"
         const val TOKEN_PREFIX = "Bearer "
     }
 
@@ -34,12 +33,6 @@ class TokenCookieUtil {
         response.setHeader(ACCESS_TOKEN_HEADER, "$TOKEN_PREFIX$accessToken")
     }
     
-    /**
-     * Refresh Token을 응답 헤더에 설정
-     */
-    fun setRefreshTokenHeader(response: HttpServletResponse, refreshToken: String) {
-        response.setHeader(REFRESH_TOKEN_HEADER, refreshToken)
-    }
 
     /**
      * Refresh Token을 HttpOnly 쿠키에 설정
@@ -91,38 +84,23 @@ class TokenCookieUtil {
      * 모든 토큰 정리 (로그아웃 시 사용)
      */
     fun clearAllTokens(response: HttpServletResponse) {
-        // 헤더에서 토큰 제거
+        // Authorization 헤더 초기화
         response.setHeader(ACCESS_TOKEN_HEADER, "")
-        response.setHeader(REFRESH_TOKEN_HEADER, "")
-
+        
         // Refresh Token 쿠키 삭제
         deleteRefreshTokenCookie(response)
     }
 
     /**
      * 토큰 설정 (회원가입, 로그인 시 사용)
-     * Access Token과 Refresh Token을 모두 헤더에 설정하고,
-     * Refresh Token은 추가로 쿠키에도 설정
+     * Access Token은 Authorization 헤더에만,
+     * Refresh Token은 httpOnly 쿠키에만 설정
      */
     fun setTokens(response: HttpServletResponse, accessToken: String, refreshToken: String) {
-        // 헤더에 토큰 설정
+        // Access Token은 오직 Authorization 헤더로만
         setAccessTokenHeader(response, accessToken)
-        setRefreshTokenHeader(response, refreshToken)
-        // Refresh Token은 쿠키에도 설정 (선택적)
+        // Refresh Token은 오직 httpOnly 쿠키로만
         setRefreshTokenCookie(response, refreshToken)
     }
     
-    /**
-     * 쿠키에 토큰 추가 (별칭 메서드)
-     */
-    fun addTokenCookies(response: HttpServletResponse, accessToken: String, refreshToken: String) {
-        setTokens(response, accessToken, refreshToken)
-    }
-    
-    /**
-     * 토큰 쿠키 삭제 (별칭 메서드)
-     */
-    fun deleteTokenCookies(response: HttpServletResponse) {
-        clearAllTokens(response)
-    }
 }
