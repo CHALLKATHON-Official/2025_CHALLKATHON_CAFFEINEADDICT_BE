@@ -1,7 +1,7 @@
-package com.challkathon.momento.domain.user.entity.mapping
+package com.challkathon.momento.domain.todo.mapping
 
-import com.challkathon.momento.domain.user.entity.Family
-import com.challkathon.momento.domain.user.entity.TodoList
+import com.challkathon.momento.domain.family.entity.Family
+import com.challkathon.momento.domain.todo.TodoList
 import jakarta.persistence.*
 
 @Entity
@@ -24,5 +24,6 @@ class FamilyTodoList(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "family_todo_list_id", nullable = false)
     val id: Long = 0
 }
