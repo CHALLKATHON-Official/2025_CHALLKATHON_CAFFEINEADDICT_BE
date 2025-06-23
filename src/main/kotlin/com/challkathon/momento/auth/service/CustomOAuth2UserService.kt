@@ -49,13 +49,13 @@ class CustomOAuth2UserService(
     private fun registerNewUser(userRequest: OAuth2UserRequest, oAuth2UserInfo: OAuth2UserInfo): User {
         val authProvider = AuthProvider.valueOf(userRequest.clientRegistration.registrationId.uppercase())
 
+        // 새 사용자는 family role을 나중에 선택하도록 null로 생성
         val user = User.createOAuth2User(
             email = oAuth2UserInfo.getEmail()!!,
             username = oAuth2UserInfo.getName() ?: "사용자",
             authProvider = authProvider,
             providerId = oAuth2UserInfo.getId(),
-            profileImageUrl = oAuth2UserInfo.getImageUrl(),
-            familyRole = FamilyRole.SON
+            profileImageUrl = oAuth2UserInfo.getImageUrl()
         )
 
         user.updateLastLogin()

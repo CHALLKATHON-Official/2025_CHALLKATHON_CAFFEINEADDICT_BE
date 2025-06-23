@@ -72,14 +72,23 @@ class OAuth2AuthenticationSuccessHandler(
         authentication: Authentication
     ): String {
         // 기본 리다이렉트 URL 결정
-        val targetUrl = authorizedRedirectUris.split(",").firstOrNull() 
-            ?: "http://localhost:3000/oauth2/redirect"
+        val baseUrl = authorizedRedirectUris.split(",").firstOrNull() 
+            ?: "http://localhost:3000"
         
         val userPrincipal = authentication.principal as UserPrincipal
+        val user = userPrincipal.getUser()
+
+        // 가족 역할이 선택되지 않은 경우 별도 페이지로 리다이렉트
+        val targetUrl = if (!user.familyRoleSelected) {
+            "$baseUrl/family-role-selection"
+        } else {
+            "$baseUrl/oauth2/redirect"
+        }
 
         return UriComponentsBuilder.fromUriString(targetUrl)
             .queryParam("token", jwtProvider.generateAccessToken(userPrincipal))
             .queryParam("success", "true")
+            .queryParam("needsFamilyRole", (!user.familyRoleSelected).toString())
             .build().toUriString()
     }
 

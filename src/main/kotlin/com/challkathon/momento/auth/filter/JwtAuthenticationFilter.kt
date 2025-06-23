@@ -36,10 +36,10 @@ class JwtAuthenticationFilter(
 
     // 인증을 건너뛸 경로들
     private val excludedPaths = listOf(
-        "/api/v1/auth/signup",
-        "/api/v1/auth/signin",
-        "/api/v1/auth/refresh",
+        "/api/v1/auth/login-info",
         "/oauth2/**",
+        "/oauth2/authorization/**",
+        "/oauth2/code/**",
         "/login/**",
         "/login/oauth2/**",
         "/swagger-ui/**",
@@ -50,11 +50,12 @@ class JwtAuthenticationFilter(
         "/webjars/**",
         "/h2-console/**",
         "/api/v1/test/public",
+        "/api/v1/test/oauth2-debug",
+        "/api/v1/test/oauth2-redirect-test",
         "/favicon.ico",
         "/error",
         "/",
-        "/profile",
-        "/oauth2/redirect" // OAuth2 리다이렉트 페이지는 인증 없이 접근 가능
+        "/actuator/**"
     )
 
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {

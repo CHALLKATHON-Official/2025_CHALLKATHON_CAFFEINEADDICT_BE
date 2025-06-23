@@ -23,7 +23,8 @@ class CustomAuthenticationEntryPoint(
         response: HttpServletResponse,
         authException: AuthenticationException
     ) {
-        log.warn { "인증되지 않은 요청: ${request.requestURI}" }
+        val requestURI = request.requestURI
+        log.warn { "인증되지 않은 요청: $requestURI - Exception: ${authException.message}" }
         
         val errorCode = AuthErrorStatus._AUTHENTICATION_FAILED.getCode()
         
