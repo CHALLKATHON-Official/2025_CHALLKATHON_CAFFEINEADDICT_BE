@@ -1,4 +1,4 @@
-package com.challkathon.momento.domain.user.entity
+package com.challkathon.momento.domain.todo
 
 import jakarta.persistence.*
 
@@ -11,5 +11,6 @@ class TodoList(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "todo_list_id", nullable = false)
     val id: Long = 0
 }

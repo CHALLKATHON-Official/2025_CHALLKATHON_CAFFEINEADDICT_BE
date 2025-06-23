@@ -1,5 +1,9 @@
 package com.challkathon.momento.domain.user.entity
 
+import com.challkathon.momento.domain.character.entity.UserCharacter
+import com.challkathon.momento.domain.message.entity.Message
+import com.challkathon.momento.domain.question.entity.Answer
+import com.challkathon.momento.domain.story.Story
 import com.challkathon.momento.domain.user.entity.enums.AuthProvider
 import com.challkathon.momento.domain.user.entity.enums.FamilyRole
 import com.challkathon.momento.domain.user.entity.enums.Role
@@ -76,8 +80,23 @@ class User(
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
+    @Column(name = "user_id", nullable = false)
     val id: Long = 0
+
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val messages: MutableList<Message> = mutableListOf()
+
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val userCharacters: MutableList<UserCharacter> = mutableListOf()
+
+    // User.kt
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val answers: MutableList<Answer> = mutableListOf()
+
+    // User.kt
+    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
+    val stories: MutableList<Story> = mutableListOf()
+
 
     fun updateLastLogin() {
         this.lastLoginAt = LocalDateTime.now()

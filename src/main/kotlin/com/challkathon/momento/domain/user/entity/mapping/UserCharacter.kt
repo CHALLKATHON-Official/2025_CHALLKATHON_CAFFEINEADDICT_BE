@@ -12,11 +12,11 @@ class UserCharacter(
     val user: User,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "character_id", nullable = false)
+    @JoinColumn(name = "characters_id", nullable = false)
     val characters: Characters
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    val id: Long = 0L
+    @Column(name = "user_character_id", nullable = false)
+    val id: Long = 0
 }

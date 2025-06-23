@@ -1,4 +1,4 @@
-package com.challkathon.momento.domain.user.entity
+package com.challkathon.momento.domain.question.entity
 
 import jakarta.persistence.*
 
@@ -11,5 +11,6 @@ class Question(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "question_id", nullable = false)
     val id: Long = 0
 }

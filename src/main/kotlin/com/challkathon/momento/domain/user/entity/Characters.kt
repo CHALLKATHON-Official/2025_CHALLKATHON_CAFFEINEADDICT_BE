@@ -15,6 +15,6 @@ class Characters(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+    @Column(name = "characters_id", nullable = false)
     val id: Long = 0
 }
