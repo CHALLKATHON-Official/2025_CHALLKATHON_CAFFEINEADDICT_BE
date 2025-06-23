@@ -1,7 +1,7 @@
-package com.challkathon.momento.domain.user.entity.mapping
+package com.challkathon.momento.domain.question.entity.mapping
 
-import com.challkathon.momento.domain.user.entity.Family
-import com.challkathon.momento.domain.user.entity.Question
+import com.challkathon.momento.domain.family.entity.Family
+import com.challkathon.momento.domain.question.entity.Question
 import jakarta.persistence.*
 
 @Entity
@@ -18,5 +18,6 @@ class FamilyQuestion(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "family_question_id", nullable = false)
     val id: Long = 0
 }
