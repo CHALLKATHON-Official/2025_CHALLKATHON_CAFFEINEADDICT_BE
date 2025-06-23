@@ -25,7 +25,9 @@ class AuthService(
         val user = User.createLocalUser(
             email = request.email,
             username = request.username,
-            encodedPassword = passwordEncoder.encode(request.password)
+            encodedPassword = passwordEncoder.encode(request.password),
+            familyRole = request.familyRole
+
         )
         
         val savedUser = userRepository.save(user)
