@@ -1,6 +1,7 @@
 package com.challkathon.momento.domain.user.entity
 
 import com.challkathon.momento.domain.character.entity.UserCharacter
+import com.challkathon.momento.domain.family.entity.Family
 import com.challkathon.momento.domain.message.entity.Message
 import com.challkathon.momento.domain.question.entity.Answer
 import com.challkathon.momento.domain.story.Story
@@ -13,10 +14,13 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Index
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
@@ -78,6 +82,10 @@ class User(
 
     @Column(name = "refresh_token", length = 1000)
     var refreshToken: String? = null,
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "family_id")
+    var family: Family? = null,
 ) : BaseEntity() {
 
     @Id
