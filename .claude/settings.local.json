@@ -12,7 +12,8 @@
       "Bash(chmod:*)",
       "Bash(ls:*)",
       "Bash(sed:*)",
-      "Bash(docker build:*)"
+      "Bash(docker build:*)",
+      "Bash(touch:*)"
     ],
     "deny": []
   }
