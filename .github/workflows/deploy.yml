@@ -132,6 +132,14 @@ jobs:
           SWAGGER_ENABLED=true
           EOF
 
+      - name: Create docker-compose override file
+        run: |
+          cat > docker-compose.override.yml << EOF
+          services:
+            momento-server:
+              image: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+          EOF
+
       - name: Create deployment script
         run: |
           cat > deploy.sh << 'SCRIPT'
@@ -157,85 +165,43 @@ jobs:
             exit 1
           fi
 
-          # 이전 이미지 태그 저장
-          PREVIOUS_TAG=$(docker inspect momento-server --format='{{.Config.Image}}' 2>/dev/null || echo "none")
-          echo "현재 실행 중인 이미지: $PREVIOUS_TAG"
-
           # Docker Hub 로그인
           echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
           # 새 이미지 pull
           echo "새 이미지 pull 중: ${DOCKER_IMAGE}:${DOCKER_TAG}"
           docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}
-          docker pull ${DOCKER_IMAGE}:latest
 
-          # MySQL 컨테이너 확인
-          echo "MySQL 상태 확인..."
-          docker ps | grep mysql || echo "⚠️  MySQL 컨테이너가 실행 중이지 않습니다!"
+          # MySQL 실행 확인
+          if ! docker ps | grep -q momento-mysql; then
+            echo "MySQL이 실행되지 않았습니다. docker-compose로 시작 중..."
+            docker-compose up -d mysql
+            echo "MySQL 초기화 대기 중..."
+            sleep 30
+          fi
 
-          # 네트워크 확인
-          echo "Docker 네트워크 확인..."
-          docker network ls | grep momento_momento-network || docker network create momento_momento-network
+          # 기존 momento-server만 중지
+          docker-compose stop momento-server || true
+          docker-compose rm -f momento-server || true
 
-          # 볼륨 확인/생성
-          docker volume create momento_app_logs || true
+          # 새 버전으로 시작 (override 파일이 자동으로 적용됨)
+          docker-compose up -d momento-server
 
-          # 새 컨테이너로 교체 (Blue-Green 배포)
-          echo "Blue-Green 배포 시작..."
-
-          # 환경변수 디버깅 (민감한 정보는 부분 마스킹)
-          echo "환경변수 확인:"
-          echo "MYSQL_DATABASE: $MYSQL_DATABASE"
-          echo "MYSQL_USER: $MYSQL_USER"
-          echo "SPRING_PROFILES_ACTIVE: $SPRING_PROFILES_ACTIVE"
-
-          # 새 컨테이너 시작
-          echo "새 컨테이너 시작 중..."
-          docker run -d \
-            --name momento-server-new \
-            --network momento_momento-network \
-            -p 8081:8080 \
-            --env-file .env \
-            -e SPRING_DATASOURCE_URL="jdbc:mysql://momento-mysql:3306/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8" \
-            -e SPRING_DATASOURCE_USERNAME="${MYSQL_USER}" \
-            -e SPRING_DATASOURCE_PASSWORD="${MYSQL_PASSWORD}" \
-            -v momento_app_logs:/var/log/momento \
-            ${DOCKER_IMAGE}:${DOCKER_TAG}
-
-          # 컨테이너 시작 확인
-          sleep 5
-          echo "컨테이너 상태:"
-          docker ps | grep momento-server-new || echo "⚠️  새 컨테이너가 실행되지 않았습니다!"
-
-          # 초기 로그 확인
-          echo "초기 컨테이너 로그:"
-          docker logs --tail=20 momento-server-new
-
-          # 새 컨테이너 헬스체크
-          echo "새 컨테이너 헬스체크 중..."
+          # 헬스체크
+          echo "헬스체크 시작..."
           max_attempts=20
           attempt=1
           while [ $attempt -le $max_attempts ]; do
             echo "헬스체크 시도 $attempt/$max_attempts..."
 
-            # 컨테이너가 실행 중인지 확인
-            if ! docker ps | grep -q momento-server-new; then
-              echo "❌ 컨테이너가 중지되었습니다!"
-              echo "컨테이너 로그:"
-              docker logs --tail=50 momento-server-new
-              exit 1
-            fi
-
-            # 헬스체크
-            if docker exec momento-server-new wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health 2>/dev/null; then
-              echo "✅ 새 컨테이너 헬스체크 성공!"
+            if docker exec momento-server wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health 2>/dev/null; then
+              echo "✅ 헬스체크 성공!"
               break
             else
               if [ $attempt -eq $max_attempts ]; then
-                echo "❌ 새 컨테이너 헬스체크 실패"
-                echo "최종 컨테이너 로그:"
-                docker logs --tail=100 momento-server-new
-                docker rm -f momento-server-new
+                echo "❌ 헬스체크 실패"
+                echo "컨테이너 로그:"
+                docker-compose logs --tail=100 momento-server
                 exit 1
               fi
               sleep 5
@@ -243,35 +209,14 @@ jobs:
             fi
           done
 
-          # 기존 컨테이너 중지 및 제거
-          if docker ps -a | grep -q " momento-server$"; then
-            echo "기존 컨테이너 중지 중..."
-            docker stop momento-server || true
-            docker rm momento-server || true
-          fi
-
-          # 새 컨테이너를 8080 포트로 재시작
-          docker stop momento-server-new
-          docker rm momento-server-new
-
-          # 정식 컨테이너로 시작
-          docker run -d \
-            --name momento-server \
-            --network momento_momento-network \
-            -p 8080:8080 \
-            --env-file .env \
-            -e SPRING_DATASOURCE_URL="jdbc:mysql://momento-mysql:3306/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8" \
-            -e SPRING_DATASOURCE_USERNAME="${MYSQL_USER}" \
-            -e SPRING_DATASOURCE_PASSWORD="${MYSQL_PASSWORD}" \
-            -v momento_app_logs:/var/log/momento \
-            --restart unless-stopped \
-            ${DOCKER_IMAGE}:${DOCKER_TAG}
-
           # nginx 재시작
-          docker restart momento-nginx || echo "Nginx 재시작 실패 (무시)"
+          docker-compose restart nginx || echo "Nginx 재시작 실패 (무시)"
+
+          # 사용하지 않는 이미지 정리
+          docker image prune -f
 
           echo "✅ 배포 완료!"
-          docker ps | grep momento
+          docker-compose ps
           SCRIPT
 
           chmod +x deploy.sh
@@ -302,18 +247,10 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          timeout: 20m  # 10m → 20m으로 증가
-          command_timeout: 15m  # 명령 타임아웃 추가
+          timeout: 20m
+          command_timeout: 15m
           script: |
             cd /home/${{ secrets.EC2_USER }}/momento
-
-            # MySQL 실행 확인
-            if ! docker ps | grep -q momento-mysql; then
-              echo "MySQL이 실행되지 않았습니다. 시작 중..."
-              docker-compose up -d mysql
-              echo "MySQL 초기화 대기 중..."
-              sleep 30
-            fi
 
             # 백업
             [ -f .env ] && cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
@@ -325,34 +262,10 @@ jobs:
             # 배포 스크립트 실행
             ./deploy.sh
 
-      - name: Cleanup on failure
-        if: failure()
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /home/${{ secrets.EC2_USER }}/momento
-            
-            # 실패한 컨테이너 정리
-            docker rm -f momento-server-new 2>/dev/null || true
-            
-            # 이전 백업에서 복구
-            if [ -f .env.backup.* ]; then
-              latest_backup=$(ls -t .env.backup.* | head -1)
-              cp $latest_backup .env
-              docker compose up -d momento-server
-            fi
+            # 최종 확인
+            sleep 5
+            curl -f https://dev.caffeineoverdose.shop/actuator/health || exit 1
 
-      - name: Notify deployment status
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ 배포 성공!"
-            echo "- 이미지: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}"
-            echo "- URL: https://dev.caffeineoverdose.shop"
-            echo "- 빌드 번호: ${{ github.run_number }}"
-          else
-            echo "❌ 배포 실패"
-          fi
+            echo "🎉 배포가 성공적으로 완료되었습니다!"
+            echo "이미지: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}"
+            echo "URL: https://dev.caffeineoverdose.shop"
