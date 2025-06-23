@@ -60,11 +60,14 @@ jwt:
 
 # 앱 설정 (로컬 환경 - 기본값 오버라이드)
 app:
+  oauth2:
+    authorized-redirect-uris: http://localhost:3000/oauth2/redirect,http://localhost:3000/login/callback
   cors:
     allowed-origins: http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080
   cookie:
     refresh-token:
       secure: false  # 로컬에서는 HTTP 허용
+      domain: localhost
 
 # 서버 설정 (로컬용)
 server:

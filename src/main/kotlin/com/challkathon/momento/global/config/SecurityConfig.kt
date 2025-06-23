@@ -61,10 +61,7 @@ class SecurityConfig(
                     .requestMatchers(
                         "/",
                         "/error",
-                        "/favicon.ico",
-                        "/login",
-                        "/profile",
-                        "/oauth2/redirect"
+                        "/favicon.ico"
                     ).permitAll()
                     // Swagger UI
                     .requestMatchers(
@@ -86,17 +83,13 @@ class SecurityConfig(
                         "/api/v1/auth/refresh",
                         "/api/v1/test/public"
                     ).permitAll()
-                    // Static resources - using PathRequest for better handling
-                    .requestMatchers("/static/**").permitAll()
-                    .requestMatchers("/css/**").permitAll()
-                    .requestMatchers("/js/**").permitAll()
-                    .requestMatchers("/images/**").permitAll()
+                    // Actuator endpoints
+                    .requestMatchers("/actuator/**").permitAll()
                     // Everything else requires authentication
                     .anyRequest().authenticated()
             }
             .oauth2Login { oauth2 ->
                 oauth2
-                    .loginPage("/login")
                     .userInfoEndpoint { it.userService(customOAuth2UserService) }
                     .successHandler(oAuth2AuthenticationSuccessHandler)
                     .failureHandler(oAuth2AuthenticationFailureHandler)

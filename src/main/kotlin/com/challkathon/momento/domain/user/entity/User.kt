@@ -1,10 +1,19 @@
 package com.challkathon.momento.domain.user.entity
 
 import com.challkathon.momento.domain.user.entity.enums.AuthProvider
-import com.challkathon.momento.domain.user.entity.enums.Role
 import com.challkathon.momento.domain.user.entity.enums.FamilyRole
+import com.challkathon.momento.domain.user.entity.enums.Role
 import com.challkathon.momento.global.common.BaseEntity
-import jakarta.persistence.*
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.Index
+import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
 
 @Entity
@@ -59,7 +68,7 @@ class User(
     var refreshTokenVersion: Long = 0,
 
     @Column(name = "refresh_token", length = 1000)
-    var refreshToken: String? = null
+    var refreshToken: String? = null,
 ) : BaseEntity() {
 
     @Id
