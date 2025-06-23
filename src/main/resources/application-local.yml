@@ -115,3 +115,17 @@ spring.devtools:
     enabled: true
   livereload:
     enabled: true
+
+cloud:
+  aws:
+    s3:
+      bucket: deft22
+      path:
+        momento: momento   # ← 여기! s3 밑에 있어야 함
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+    credentials:
+      accessKey: ${AWS_ACCESS_KEY_ID}
+      secretKey: ${AWS_SECRET_ACCESS_KEY}
