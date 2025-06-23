@@ -23,6 +23,6 @@ class Message(
 ) {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+    @Column(name = "message_id", nullable = false)
     val id: Long = 0
 }
