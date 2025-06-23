@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.core.Authentication
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.IOException
 
@@ -26,6 +27,7 @@ class OAuth2AuthenticationSuccessHandler(
         private val log = LoggerFactory.getLogger(OAuth2AuthenticationSuccessHandler::class.java)
     }
 
+    @Transactional
     override fun onAuthenticationSuccess(
         request: HttpServletRequest,
         response: HttpServletResponse,

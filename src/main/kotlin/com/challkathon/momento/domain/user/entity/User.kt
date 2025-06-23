@@ -8,6 +8,7 @@ import com.challkathon.momento.domain.user.entity.enums.AuthProvider
 import com.challkathon.momento.domain.user.entity.enums.FamilyRole
 import com.challkathon.momento.domain.user.entity.enums.Role
 import com.challkathon.momento.global.common.BaseEntity
+import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -16,6 +17,7 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Index
+import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
