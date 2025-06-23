@@ -104,6 +104,7 @@ jobs:
           cat > .env << EOF
           # Docker
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}
           DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
           DOCKER_TAG=${{ env.DOCKER_TAG }}
 
@@ -130,51 +131,70 @@ jobs:
           COOKIE_DOMAIN=.caffeineoverdose.shop
           SWAGGER_ENABLED=true
           EOF
-          
+
       - name: Create deployment script
         run: |
-          cat > deploy.sh << 'EOF'
+          cat > deploy.sh << 'SCRIPT'
           #!/bin/bash
           set -e
-          
+
           echo "🚀 배포 시작..."
-          
+
           # 환경 변수 로드
+          if [ ! -f .env ]; then
+            echo "❌ .env 파일이 없습니다!"
+            exit 1
+          fi
+
+          # .env 파일 로드 및 export
+          set -a
           source .env
-          
+          set +a
+
+          # 필수 변수 확인
+          if [ -z "$DOCKER_IMAGE" ] || [ -z "$DOCKER_TAG" ]; then
+            echo "❌ 필수 환경변수가 설정되지 않았습니다!"
+            echo "DOCKER_IMAGE: $DOCKER_IMAGE"
+            echo "DOCKER_TAG: $DOCKER_TAG"
+            exit 1
+          fi
+
           # 이전 이미지 태그 저장
           PREVIOUS_TAG=$(docker inspect momento-server --format='{{.Config.Image}}' 2>/dev/null || echo "none")
           echo "현재 실행 중인 이미지: $PREVIOUS_TAG"
-          
+
           # Docker Hub 로그인
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "$DOCKER_USERNAME" --password-stdin
-          
+          echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+
           # 새 이미지 pull
           echo "새 이미지 pull 중: ${DOCKER_IMAGE}:${DOCKER_TAG}"
           docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}
           docker pull ${DOCKER_IMAGE}:latest
-          
+
           # 새 컨테이너로 교체 (Blue-Green 배포)
           echo "Blue-Green 배포 시작..."
-          
-          # 새 컨테이너 시작 (다른 포트로)
+
+          # 임시 네트워크 확인/생성
+          docker network ls | grep momento_momento-network || docker network create momento_momento-network
+
+          # 새 컨테이너 시작
           docker run -d \
             --name momento-server-new \
             --network momento_momento-network \
             -p 8081:8080 \
             --env-file .env \
-            -e SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8 \
-            -e SPRING_DATASOURCE_USERNAME=${MYSQL_USER} \
-            -e SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD} \
-            -v app_logs:/var/log/momento \
+            -e SPRING_DATASOURCE_URL="jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8" \
+            -e SPRING_DATASOURCE_USERNAME="${MYSQL_USER}" \
+            -e SPRING_DATASOURCE_PASSWORD="${MYSQL_PASSWORD}" \
+            -v momento_app_logs:/var/log/momento \
             ${DOCKER_IMAGE}:${DOCKER_TAG}
-          
+
           # 새 컨테이너 헬스체크
           echo "새 컨테이너 헬스체크 중..."
           max_attempts=30
           attempt=1
           while [ $attempt -le $max_attempts ]; do
-            if docker exec momento-server-new wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health; then
+            if docker exec momento-server-new wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health 2>/dev/null; then
               echo "✅ 새 컨테이너 헬스체크 성공!"
               break
             else
@@ -189,34 +209,49 @@ jobs:
               ((attempt++))
             fi
           done
-          
+
           # 기존 컨테이너 중지 및 제거
-          if docker ps -a | grep -q momento-server; then
+          if docker ps -a | grep -q " momento-server$"; then
             echo "기존 컨테이너 중지 중..."
             docker stop momento-server || true
             docker rm momento-server || true
           fi
-          
-          # 새 컨테이너 이름 변경
-          docker rename momento-server-new momento-server
-          
-          # nginx 재시작하여 새 컨테이너 연결
-          docker compose restart nginx
-          
-          # 이전 이미지 정리 (태그가 다른 경우만)
+
+          # 새 컨테이너를 8080 포트로 재시작
+          docker stop momento-server-new
+          docker rm momento-server-new
+
+          # 정식 컨테이너로 시작
+          docker run -d \
+            --name momento-server \
+            --network momento_momento-network \
+            -p 8080:8080 \
+            --env-file .env \
+            -e SPRING_DATASOURCE_URL="jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8" \
+            -e SPRING_DATASOURCE_USERNAME="${MYSQL_USER}" \
+            -e SPRING_DATASOURCE_PASSWORD="${MYSQL_PASSWORD}" \
+            -v momento_app_logs:/var/log/momento \
+            --restart unless-stopped \
+            ${DOCKER_IMAGE}:${DOCKER_TAG}
+
+          # nginx 재시작
+          docker restart momento-nginx || echo "Nginx 재시작 실패 (무시)"
+
+          # 이전 이미지 정리
           if [ "$PREVIOUS_TAG" != "none" ] && [ "$PREVIOUS_TAG" != "${DOCKER_IMAGE}:${DOCKER_TAG}" ]; then
             echo "이전 이미지 제거: $PREVIOUS_TAG"
             docker rmi $PREVIOUS_TAG || true
           fi
-          
+
           # 사용하지 않는 이미지 정리
           docker image prune -f
-          
+
           echo "✅ 배포 완료!"
           docker ps | grep momento
-          EOF
-          
+          SCRIPT
+
           chmod +x deploy.sh
+
 
       - name: Create docker-compose override
         run: |
