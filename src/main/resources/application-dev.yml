@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:mysql://mysql:3306/momento_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: momento_user
-    password: momento_pass
+    password: caffeineaddict1234
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20

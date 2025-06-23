@@ -6,10 +6,14 @@ on:
   pull_request:
     branches: [ develop ]
 
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/momento-server
+  DOCKER_TAG: ${{ github.sha }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,51 +40,203 @@ jobs:
       - name: Run tests
         run: ./gradlew test
 
-      - name: Build application
-        run: ./gradlew bootJar
-
-      # Docker 이미지 빌드 및 푸시 추가
-      - name: Set up Docker Buildx
-        if: github.ref == 'refs/heads/develop'
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        if: github.ref == 'refs/heads/develop'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push Docker image
-        if: github.ref == 'refs/heads/develop'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ secrets.DOCKER_USERNAME }}/momento-server:latest
-            ${{ secrets.DOCKER_USERNAME }}/momento-server:${{ github.sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/momento-server:buildcache
-          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/momento-server:buildcache,mode=max
-
-  deploy:
+  build-and-push:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/develop'
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value={{branch}}-{{date 'YYYYMMDD-HHmmss'}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:latest
+            ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+            ${{ env.DOCKER_IMAGE }}:develop-${{ github.run_number }}
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max
+          build-args: |
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ github.run_number }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          # Docker
+          DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
+          DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
+          DOCKER_TAG=${{ env.DOCKER_TAG }}
+          
+          # Spring Profile
+          SPRING_PROFILES_ACTIVE=dev
+          
+          # JWT
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          
+          # Kakao OAuth
+          KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REDIRECT_URI=https://dev.caffeineoverdose.shop/login/oauth2/code/kakao
+          
+          # MySQL
+          MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
+          MYSQL_USER=${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+          
+          # App Config
+          AUTHORIZED_REDIRECT_URIS=https://dev.caffeineoverdose.shop/oauth2/redirect
+          ALLOWED_ORIGINS=https://dev.caffeineoverdose.shop
+          COOKIE_DOMAIN=.caffeineoverdose.shop
+          SWAGGER_ENABLED=true
+          EOF
+
+      - name: Create deployment script
+        run: |
+          cat > deploy.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          echo "🚀 배포 시작..."
+          
+          # 환경 변수 로드
+          source .env
+          
+          # 이전 이미지 태그 저장
+          PREVIOUS_TAG=$(docker inspect momento-server --format='{{.Config.Image}}' 2>/dev/null || echo "none")
+          echo "현재 실행 중인 이미지: $PREVIOUS_TAG"
+          
+          # Docker Hub 로그인
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "$DOCKER_USERNAME" --password-stdin
+          
+          # 새 이미지 pull
+          echo "새 이미지 pull 중: ${DOCKER_IMAGE}:${DOCKER_TAG}"
+          docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}
+          docker pull ${DOCKER_IMAGE}:latest
+          
+          # 새 컨테이너로 교체 (Blue-Green 배포)
+          echo "Blue-Green 배포 시작..."
+          
+          # 새 컨테이너 시작 (다른 포트로)
+          docker run -d \
+            --name momento-server-new \
+            --network momento_momento-network \
+            -p 8081:8080 \
+            --env-file .env \
+            -e SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?serverTimezone=Asia/Seoul&characterEncoding=UTF-8 \
+            -e SPRING_DATASOURCE_USERNAME=${MYSQL_USER} \
+            -e SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD} \
+            -v app_logs:/var/log/momento \
+            ${DOCKER_IMAGE}:${DOCKER_TAG}
+          
+          # 새 컨테이너 헬스체크
+          echo "새 컨테이너 헬스체크 중..."
+          max_attempts=30
+          attempt=1
+          while [ $attempt -le $max_attempts ]; do
+            if docker exec momento-server-new wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health; then
+              echo "✅ 새 컨테이너 헬스체크 성공!"
+              break
+            else
+              echo "헬스체크 대기 중... ($attempt/$max_attempts)"
+              if [ $attempt -eq $max_attempts ]; then
+                echo "❌ 새 컨테이너 헬스체크 실패"
+                docker logs --tail=50 momento-server-new
+                docker rm -f momento-server-new
+                exit 1
+              fi
+              sleep 2
+              ((attempt++))
+            fi
+          done
+          
+          # 기존 컨테이너 중지 및 제거
+          if docker ps -a | grep -q momento-server; then
+            echo "기존 컨테이너 중지 중..."
+            docker stop momento-server || true
+            docker rm momento-server || true
+          fi
+          
+          # 새 컨테이너 이름 변경
+          docker rename momento-server-new momento-server
+          
+          # nginx 재시작하여 새 컨테이너 연결
+          docker compose restart nginx
+          
+          # 이전 이미지 정리 (태그가 다른 경우만)
+          if [ "$PREVIOUS_TAG" != "none" ] && [ "$PREVIOUS_TAG" != "${DOCKER_IMAGE}:${DOCKER_TAG}" ]; then
+            echo "이전 이미지 제거: $PREVIOUS_TAG"
+            docker rmi $PREVIOUS_TAG || true
+          fi
+          
+          # 사용하지 않는 이미지 정리
+          docker image prune -f
+          
+          echo "✅ 배포 완료!"
+          docker ps | grep momento
+          EOF
+          
+          chmod +x deploy.sh
+
+      - name: Create docker-compose override
+        run: |
+          cat > docker-compose.override.yml << EOF
+          services:
+            momento-server:
+              image: ${DOCKER_IMAGE}:${DOCKER_TAG}
+          EOF
+
       - name: Create deployment package
         run: |
-          # Dockerfile은 더 이상 필요하지 않으므로 제외
           tar -czf deploy.tar.gz \
             docker-compose.yml \
+            docker-compose.override.yml \
             nginx/ \
-            mysql/
+            mysql/ \
+            .env \
+            deploy.sh
 
-      - name: Copy files to EC2
+      - name: Transfer files to EC2
         uses: appleboy/scp-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -88,99 +244,64 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "deploy.tar.gz"
           target: "/home/${{ secrets.EC2_USER }}/momento"
+          overwrite: true
 
-      - name: Deploy to EC2
+      - name: Execute deployment
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          timeout: 15m  # 빌드가 없으므로 시간 단축 가능
+          timeout: 10m
           script: |
             cd /home/${{ secrets.EC2_USER }}/momento
+            
+            # 백업
+            [ -f .env ] && cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
             
             # 압축 해제
             tar -xzf deploy.tar.gz
             rm deploy.tar.gz
             
-            # 환경변수 설정
-            export JWT_SECRET="${{ secrets.JWT_SECRET }}"
-            export KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}"
-            export KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}"
-            export MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}"
-            export MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}"
-            export MYSQL_DATABASE="${{ secrets.MYSQL_DATABASE }}"
-            export MYSQL_USER="${{ secrets.MYSQL_USER }}"
-            export DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
+            # 배포 스크립트 실행
+            ./deploy.sh
             
-            # Docker Hub 로그인
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+            # 최종 확인
+            sleep 5
+            curl -f https://dev.caffeineoverdose.shop/actuator/health || exit 1
             
-            # SSL 인증서 초기 발급 (최초 1회만)
-            if [ ! -f "./certbot/conf/live/dev.caffeineoverdose.shop/fullchain.pem" ]; then
-              echo "SSL 인증서 초기 발급..."
+            echo "🎉 배포가 성공적으로 완료되었습니다!"
+            echo "이미지: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}"
+            echo "URL: https://dev.caffeineoverdose.shop"
+
+      - name: Cleanup on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.EC2_USER }}/momento
             
-              # certbot/www 디렉토리 생성
-              mkdir -p ./certbot/www ./certbot/conf
+            # 실패한 컨테이너 정리
+            docker rm -f momento-server-new 2>/dev/null || true
             
-              # nginx만 시작 (--no-deps 옵션 사용)
-              docker compose up -d --no-deps nginx
-              sleep 10
-            
-              # SSL 인증서 발급
-              docker compose run --rm certbot certonly \
-                --webroot \
-                --webroot-path=/var/www/certbot \
-                --email ${{ secrets.LETSENCRYPT_EMAIL }} \
-                --agree-tos \
-                --no-eff-email \
-                --non-interactive \
-                -d dev.caffeineoverdose.shop
-            
-              # nginx 중지
-              docker compose down
-            else
-              echo "SSL 인증서가 이미 존재합니다."
+            # 이전 백업에서 복구
+            if [ -f .env.backup.* ]; then
+              latest_backup=$(ls -t .env.backup.* | head -1)
+              cp $latest_backup .env
+              docker compose up -d momento-server
             fi
-            
-            # 기존 컨테이너 중지 및 제거
-            docker compose down || true
-            
-            # 최신 이미지 풀
-            docker compose pull momento-server
-            
-            # 모든 서비스 시작
-            docker compose up -d
-            
-            # 헬스체크 대기
-            echo "서비스 시작 대기 중..."
-            sleep 30
-            
-            # 헬스체크 확인
-            for i in {1..10}; do
-              if curl -f https://dev.caffeineoverdose.shop/actuator/health; then
-                echo "배포 성공!"
-                break
-              else
-                echo "헬스체크 실패. 재시도 중... ($i/10)"
-                sleep 10
-              fi
-            
-              if [ $i -eq 10 ]; then
-                echo "배포 실패 - 헬스체크 실패"
-                docker compose logs momento-server
-                exit 1
-              fi
-            done
-            
-            # 사용하지 않는 Docker 이미지 정리
-            docker image prune -f
 
       - name: Notify deployment status
         if: always()
         run: |
           if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ 배포 성공: https://dev.caffeineoverdose.shop"
+            echo "✅ 배포 성공!"
+            echo "- 이미지: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}"
+            echo "- URL: https://dev.caffeineoverdose.shop"
+            echo "- 빌드 번호: ${{ github.run_number }}"
           else
             echo "❌ 배포 실패"
           fi
