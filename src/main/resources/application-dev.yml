@@ -2,9 +2,9 @@
 spring:
   # 개발 서버용 데이터베이스 설정 (Docker MySQL 컨테이너 연결)
   datasource:
-    url: jdbc:mysql://mysql:3306/momento_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: momento_user
-    password: caffeineaddict1234
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20

@@ -106,31 +106,31 @@ jobs:
           DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}
           DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
           DOCKER_TAG=${{ env.DOCKER_TAG }}
-          
+
           # Spring Profile
           SPRING_PROFILES_ACTIVE=dev
-          
-          # JWT
-          JWT_SECRET=${{ secrets.JWT_SECRET }}
-          
-          # Kakao OAuth
-          KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
-          KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
-          KAKAO_REDIRECT_URI=https://dev.caffeineoverdose.shop/login/oauth2/code/kakao
-          
+
           # MySQL
           MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_DATABASE=${{ secrets.MYSQL_DATABASE }}
           MYSQL_USER=${{ secrets.MYSQL_USER }}
           MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-          
+
+          # JWT
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+
+          # Kakao OAuth
+          KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
+          KAKAO_REDIRECT_URI=https://dev.caffeineoverdose.shop/login/oauth2/code/kakao
+
           # App Config
           AUTHORIZED_REDIRECT_URIS=https://dev.caffeineoverdose.shop/oauth2/redirect
           ALLOWED_ORIGINS=https://dev.caffeineoverdose.shop
           COOKIE_DOMAIN=.caffeineoverdose.shop
           SWAGGER_ENABLED=true
           EOF
-
+          
       - name: Create deployment script
         run: |
           cat > deploy.sh << 'EOF'
