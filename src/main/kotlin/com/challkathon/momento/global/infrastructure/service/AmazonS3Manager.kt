@@ -12,8 +12,7 @@ import java.io.IOException
 
 @Component
 class AmazonS3Manager(
-    private val amazonS3: AmazonS3,
-    private val uuidRepository: UuidRepository
+    private val amazonS3: AmazonS3
 ) {
     @Value("\${cloud.aws.s3.bucket}")
     private lateinit var bucketName: String
@@ -23,7 +22,10 @@ class AmazonS3Manager(
 
     private val log: Logger = LoggerFactory.getLogger(AmazonS3Manager::class.java)
 
-    fun uploadFile(keyName: String, file: MultipartFile): String? {
+    fun uploadFile(file: MultipartFile): String? {
+        val originalFilename = file.originalFilename ?: return null
+        val keyName = "$momentoPath/$originalFilename"
+
         return try {
             amazonS3.putObject(bucketName, keyName, file.inputStream, null)
             amazonS3.getUrl(bucketName, keyName).toString()
@@ -33,23 +35,4 @@ class AmazonS3Manager(
         }
     }
 
-    fun deleteFile(keyName: String): Boolean {
-        return try {
-            if (amazonS3.doesObjectExist(bucketName, keyName)) {
-                amazonS3.deleteObject(bucketName, keyName)
-                log.info("Deleted file from S3: $keyName")
-                true
-            } else {
-                log.warn("File not found in S3: $keyName")
-                false
-            }
-        } catch (e: Exception) {
-            log.error("Error at AmazonS3Manager.deleteFile: {}", e.stackTraceToString())
-            false
-        }
-    }
-
-    fun generateMomentoKeyName(uuid: Uuid): String {
-        return "$momentoPath/${uuid.uuid}"
-    }
 }

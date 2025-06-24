@@ -18,8 +18,8 @@ class TokenCookieUtil {
     @Value("\${app.cookie.domain:localhost}")
     private lateinit var cookieDomain: String
 
-    @Value("\${app.cookie.secure:false}") // 개발환경에서는 false, 운영환경에서는 true
-    private var cookieSecure: Boolean = false
+    @Value("\${app.cookie.refresh-token.secure:true}")
+    private var cookieSecure: Boolean = true
 
     companion object {
         const val ACCESS_TOKEN_HEADER = "Authorization"
@@ -40,12 +40,15 @@ class TokenCookieUtil {
     fun setRefreshTokenCookie(response: HttpServletResponse, refreshToken: String) {
         val cookie = Cookie(refreshTokenCookieName, refreshToken).apply {
             maxAge = refreshTokenMaxAge
-            isHttpOnly = true  // JavaScript 접근 차단 (XSS 방지)
-            secure = cookieSecure  // HTTPS에서만 전송 (운영환경)
-            path = "/"  // 모든 경로에서 접근 가능
-            // domain = cookieDomain  // 도메인 설정 (필요시)
+            isHttpOnly = true
+            secure = cookieSecure
+            path = "/"
         }
         response.addCookie(cookie)
+        
+        // SameSite=None 설정을 위한 추가 헤더 (Jakarta Cookie가 지원하지 않음)
+        response.addHeader("Set-Cookie", 
+            "$refreshTokenCookieName=$refreshToken; Max-Age=$refreshTokenMaxAge; Path=/; HttpOnly; Secure; SameSite=None")
     }
 
     /**
@@ -72,12 +75,16 @@ class TokenCookieUtil {
      */
     fun deleteRefreshTokenCookie(response: HttpServletResponse) {
         val cookie = Cookie(refreshTokenCookieName, null).apply {
-            maxAge = 0  // 즉시 만료
+            maxAge = 0
             isHttpOnly = true
             secure = cookieSecure
             path = "/"
         }
         response.addCookie(cookie)
+        
+        // SameSite=None으로 쿠키 삭제
+        response.addHeader("Set-Cookie", 
+            "$refreshTokenCookieName=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None")
     }
 
     /**

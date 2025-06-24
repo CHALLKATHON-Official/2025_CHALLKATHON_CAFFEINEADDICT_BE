@@ -1,6 +1,9 @@
 package com.challkathon.momento.auth.service
 
 import com.challkathon.momento.auth.dto.response.RefreshTokenResponse
+import com.challkathon.momento.auth.exception.RefreshTokenException
+import com.challkathon.momento.auth.exception.UserNotFoundException
+import com.challkathon.momento.auth.exception.code.AuthErrorStatus
 import com.challkathon.momento.auth.provider.JwtProvider
 import com.challkathon.momento.auth.util.TokenCookieUtil
 import com.challkathon.momento.domain.user.repository.UserRepository
@@ -30,33 +33,33 @@ class RefreshTokenService(
     ): RefreshTokenResponse {
         // 쿠키에서 Refresh Token 추출
         val refreshToken = tokenCookieUtil.getRefreshTokenFromCookie(request)
-            ?: throw RuntimeException("Refresh Token이 없습니다.")
+            ?: throw RefreshTokenException(AuthErrorStatus._REFRESH_TOKEN_NOT_FOUND)
 
         // Refresh Token 유효성 검증
         if (!jwtProvider.validateRefreshToken(refreshToken)) {
-            throw RuntimeException("유효하지 않은 Refresh Token입니다.")
+            throw RefreshTokenException(AuthErrorStatus._REFRESH_TOKEN_INVALID)
         }
 
         // 토큰에서 사용자 정보 추출
         val username = jwtProvider.extractUsername(refreshToken)
         val tokenVersion = jwtProvider.extractRefreshTokenVersion(refreshToken)
-            ?: throw RuntimeException("Refresh Token 버전이 없습니다.")
+            ?: throw RefreshTokenException(AuthErrorStatus._REFRESH_TOKEN_VERSION_NOT_FOUND)
 
         // 사용자 조회
         val user = userRepository.findByEmail(username)
-            .orElseThrow { RuntimeException("사용자를 찾을 수 없습니다.") }
+            .orElseThrow { UserNotFoundException() }
 
         // 토큰 재사용 감지
         if (jwtProvider.detectTokenReuse(refreshToken, user.refreshTokenVersion)) {
             log.warn("토큰 재사용 감지로 인한 전체 세션 무효화: 사용자 = $username")
             user.invalidateAllRefreshTokens()
             userRepository.save(user)
-            throw RuntimeException("보안 위반: 모든 세션이 무효화되었습니다.")
+            throw RefreshTokenException(AuthErrorStatus._SECURITY_VIOLATION)
         }
 
         // 토큰 버전 검증
         if (tokenVersion != user.refreshTokenVersion) {
-            throw RuntimeException("토큰 버전이 일치하지 않습니다.")
+            throw RefreshTokenException(AuthErrorStatus._TOKEN_VERSION_MISMATCH)
         }
 
         // 새로운 토큰 버전으로 업데이트
@@ -91,7 +94,7 @@ class RefreshTokenService(
      */
     fun revokeAllTokens(username: String, response: HttpServletResponse) {
         val user = userRepository.findByEmail(username)
-            .orElseThrow { RuntimeException("사용자를 찾을 수 없습니다.") }
+            .orElseThrow { UserNotFoundException() }
 
         // 모든 Refresh Token 무효화
         user.invalidateAllRefreshTokens()

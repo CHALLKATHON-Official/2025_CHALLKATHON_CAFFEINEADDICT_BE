@@ -1,5 +1,7 @@
 package com.challkathon.momento.auth.dto
 
+import com.challkathon.momento.auth.exception.OAuth2AuthenticationException
+import com.challkathon.momento.auth.exception.code.AuthErrorStatus
 import com.challkathon.momento.domain.user.entity.enums.AuthProvider
 
 /**
@@ -20,7 +22,7 @@ data class OAuth2UserInfo(
                 AuthProvider.GITHUB -> extractGithubUserInfo(attributes)
                 AuthProvider.KAKAO -> extractKakaoUserInfo(attributes)
                 AuthProvider.NAVER -> extractNaverUserInfo(attributes)
-                else -> throw IllegalArgumentException("Unsupported provider: $provider")
+                else -> throw OAuth2AuthenticationException(AuthErrorStatus._OAUTH2_PROVIDER_NOT_SUPPORTED)
             }
         }
         

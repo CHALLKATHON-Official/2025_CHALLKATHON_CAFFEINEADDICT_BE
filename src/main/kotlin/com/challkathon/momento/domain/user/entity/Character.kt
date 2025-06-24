@@ -1,6 +1,7 @@
 package com.challkathon.momento.domain.character.entity
 
 import com.challkathon.momento.domain.user.entity.enums.FamilyRole
+import com.challkathon.momento.global.common.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -19,7 +20,7 @@ class Character(
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     var role: FamilyRole
-) {
+) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "characters_id", nullable = false)
