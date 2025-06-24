@@ -6,8 +6,8 @@ spring:
   # 로컬 개발용 데이터베이스 설정
   datasource:
     url: jdbc:mysql://localhost:3306/momento_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-    username: ${DB_USERNAME:momento}  # 기본값: momento
-    password: ${DB_PASSWORD:momento123}  # 기본값: momento123
+    username: root
+    password: ehdfprl77
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 10
@@ -37,8 +37,8 @@ spring:
       client:
         registration:
           kakao:
-            client-id: ${KAKAO_CLIENT_ID:your-kakao-client-id}  # IntelliJ에서 설정
-            client-secret: ${KAKAO_CLIENT_SECRET:your-kakao-secret}  # IntelliJ에서 설정
+            client-id: ${KAKAO_CLIENT_ID}  # IntelliJ에서 설정
+            client-secret: ${KAKAO_CLIENT_SECRET}  # IntelliJ에서 설정
             client-name: kakao
             authorization-grant-type: authorization_code
             redirect-uri: http://localhost:8080/login/oauth2/code/kakao
@@ -57,18 +57,6 @@ spring:
 jwt:
   access-token-expiration: 7200000    # 2시간 (개발 편의를 위해 조금 더 길게)
   refresh-token-expiration: 604800000 # 7일
-
-# 앱 설정 (로컬 환경 - 기본값 오버라이드)
-app:
-  oauth2:
-    authorized-redirect-uris: http://localhost:3000/oauth2/redirect,http://localhost:3000/login/callback
-  cors:
-    allowed-origins: http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080
-  cookie:
-    refresh-token:
-      secure: false  # 로컬에서는 HTTP 허용
-      domain: localhost
-      same-site: none  # 크로스 도메인 쿠키 허용
 
 openai:
   api-key: ${OPENAI_API_KEY}

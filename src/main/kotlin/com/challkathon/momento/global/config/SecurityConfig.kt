@@ -81,11 +81,7 @@ class SecurityConfig(
                     // Public API endpoints
                     .requestMatchers(
                         "/api/v1/auth/login-info",
-                        "/api/v1/auth/refresh",
-                        "/api/v1/auth/debug/**",
-                        "/api/v1/test/public",
-                        "/api/v1/test/oauth2-debug",
-                        "/api/v1/test/oauth2-redirect-test"
+                        "/api/v1/auth/refresh"
                     ).permitAll()
                     // Actuator endpoints
                     .requestMatchers("/actuator/**").permitAll()

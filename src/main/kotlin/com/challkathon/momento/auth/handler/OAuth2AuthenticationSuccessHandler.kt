@@ -48,8 +48,8 @@ class OAuth2AuthenticationSuccessHandler(
             // 헤더와 쿠키에 토큰 설정
             tokenCookieUtil.setTokens(response, accessToken, refreshToken)
 
-            // 프론트엔드로 단순 리다이렉트 (사용자 정보는 별도 API에서 조회)
-            val targetUrl = "http://localhost:3000?oauth=success"
+            // 프론트엔드로 단순 리다이렉트 (프로덕션에서는 실제 프론트엔드 도메인 사용)
+            val targetUrl = "http://localhost:3000/oauth2/redirect?token=$accessToken"
             
             if (response.isCommitted) {
                 log.debug("응답이 이미 커밋되었습니다. $targetUrl 로 리다이렉트할 수 없습니다.")
