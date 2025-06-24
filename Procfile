@@ -1,1 +1,1 @@
-web: java -Dspring.profiles.active=dev -Dfile.encoding=UTF-8 -Xms512m -Xmx2048m -XX:+UseG1GC -XX:+UseStringDeduplication -XX:MaxGCPauseMillis=200 -jar application.jar
+web: appstart
