@@ -39,9 +39,10 @@ app:
     refresh-token:
       name: refreshToken
       max-age: 604800  # 7일
-      secure: true
+      domain: localhost
+      secure: false
       http-only: true
-      same-site: none
+      same-site: lax
 
 # 서버 설정 (공통)
 server:
@@ -94,6 +95,21 @@ management:
   endpoint:
     health:
       show-details: never
+
+cloud:
+  aws:
+    s3:
+      bucket: deft22
+      path:
+        momento: momento   # ← 여기! s3 밑에 있어야 함
+    region:
+      static: ap-northeast-2
+    stack:
+      auto: false
+    credentials:
+      accessKey: ${AWS_ACCESS_KEY_ID}
+      secretKey: ${AWS_SECRET_ACCESS_KEY}
+
 
 # OpenAI 설정
 openai:

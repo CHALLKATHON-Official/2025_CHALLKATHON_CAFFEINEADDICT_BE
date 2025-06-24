@@ -137,7 +137,7 @@ management:
           max-wait: 3000ms
           time-between-eviction-runs: 60000ms
         shutdown-timeout: 200ms
-  
+
   # Cache 설정 (로컬용)
   cache:
     redis:
