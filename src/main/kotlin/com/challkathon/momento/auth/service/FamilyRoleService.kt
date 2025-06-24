@@ -2,6 +2,9 @@ package com.challkathon.momento.auth.service
 
 import com.challkathon.momento.auth.dto.response.FamilyRoleOption
 import com.challkathon.momento.auth.dto.response.FamilyRoleStatusResponse
+import com.challkathon.momento.auth.exception.FamilyRoleException
+import com.challkathon.momento.auth.exception.UserNotFoundException
+import com.challkathon.momento.auth.exception.code.AuthErrorStatus
 import com.challkathon.momento.domain.user.entity.enums.FamilyRole
 import com.challkathon.momento.domain.user.repository.UserRepository
 import mu.KotlinLogging
@@ -18,10 +21,10 @@ class FamilyRoleService(
 
     fun selectFamilyRole(email: String, familyRole: FamilyRole) {
         val user = userRepository.findByEmail(email)
-            .orElseThrow { RuntimeException("사용자를 찾을 수 없습니다.") }
+            .orElseThrow { UserNotFoundException() }
 
         if (user.familyRoleSelected) {
-            throw RuntimeException("이미 가족 역할이 선택되었습니다.")
+            throw FamilyRoleException(AuthErrorStatus._ALREADY_SELECT_FAMILY_ROLE)
         }
 
         user.updateFamilyRole(familyRole)
@@ -33,12 +36,12 @@ class FamilyRoleService(
     @Transactional(readOnly = true)
     fun getFamilyRoleStatus(email: String): FamilyRoleStatusResponse {
         val user = userRepository.findByEmail(email)
-            .orElseThrow { RuntimeException("사용자를 찾을 수 없습니다.") }
+            .orElseThrow { UserNotFoundException() }
 
         return FamilyRoleStatusResponse(
             familyRoleSelected = user.familyRoleSelected,
             familyRole = user.familyRole?.name,
-            availableRoles = FamilyRole.values().map { 
+            availableRoles = FamilyRole.values().map {
                 FamilyRoleOption(
                     code = it.name,
                     description = it.description

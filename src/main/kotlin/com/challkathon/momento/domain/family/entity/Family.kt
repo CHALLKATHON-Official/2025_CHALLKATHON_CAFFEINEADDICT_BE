@@ -3,7 +3,15 @@ package com.challkathon.momento.domain.family.entity
 import com.challkathon.momento.domain.question.entity.mapping.FamilyQuestion
 import com.challkathon.momento.domain.todo.mapping.FamilyTodoList
 import com.challkathon.momento.domain.user.entity.User
-import jakarta.persistence.*
+import com.challkathon.momento.global.common.BaseEntity
+import jakarta.persistence.CascadeType
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.OneToMany
+import jakarta.persistence.Table
 
 @Entity
 @Table(name = "family")
@@ -14,7 +22,7 @@ class Family(
 
     @Column(nullable = false)
     var count: Int = 0
-) {
+) : BaseEntity() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "family_id", nullable = false)
