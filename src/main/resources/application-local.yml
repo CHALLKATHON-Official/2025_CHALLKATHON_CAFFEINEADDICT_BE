@@ -16,6 +16,11 @@ spring:
       idle-timeout: 300000
       max-lifetime: 1200000
       pool-name: HikariCP-Local
+  # Redis 설정 (로컬 개발용)
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
   # JPA 설정 (로컬 개발용)
   jpa:
@@ -109,22 +114,6 @@ management:
       show-details: always
     env:
       show-values: always
-
-  # Redis 설정 (로컬 개발용)
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      timeout: 3000ms
-      connect-timeout: 3000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 2
-          max-wait: 3000ms
-          time-between-eviction-runs: 60000ms
-        shutdown-timeout: 200ms
   
   # Cache 설정 (로컬용)
   cache:

@@ -96,7 +96,7 @@ tasks.jar {
 tasks.bootJar {
     enabled = true   // 실행 가능한 JAR 활성화
     archiveFileName.set("application.jar")  // Elastic Beanstalk 기본 이름
-    
+
     // 빌드 정보 포함 (선택사항)
     manifest {
         attributes(

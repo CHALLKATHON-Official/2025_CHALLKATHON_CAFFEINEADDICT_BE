@@ -4,7 +4,9 @@ import jakarta.servlet.http.Cookie
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.ResponseCookie
 import org.springframework.stereotype.Component
+
 
 @Component
 class TokenCookieUtil {
@@ -32,7 +34,7 @@ class TokenCookieUtil {
     fun setAccessTokenHeader(response: HttpServletResponse, accessToken: String) {
         response.setHeader(ACCESS_TOKEN_HEADER, "$TOKEN_PREFIX$accessToken")
     }
-    
+
 
     /**
      * Refresh Token을 HttpOnly 쿠키에 설정
@@ -45,10 +47,12 @@ class TokenCookieUtil {
             path = "/"
         }
         response.addCookie(cookie)
-        
+
         // SameSite=None 설정을 위한 추가 헤더 (Jakarta Cookie가 지원하지 않음)
-        response.addHeader("Set-Cookie", 
-            "$refreshTokenCookieName=$refreshToken; Max-Age=$refreshTokenMaxAge; Path=/; HttpOnly; Secure; SameSite=None")
+        response.addHeader(
+            "Set-Cookie",
+            "$refreshTokenCookieName=$refreshToken; Max-Age=$refreshTokenMaxAge; Path=/; HttpOnly; Secure; SameSite=None"
+        )
     }
 
     /**
@@ -81,10 +85,12 @@ class TokenCookieUtil {
             path = "/"
         }
         response.addCookie(cookie)
-        
+
         // SameSite=None으로 쿠키 삭제
-        response.addHeader("Set-Cookie", 
-            "$refreshTokenCookieName=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None")
+        response.addHeader(
+            "Set-Cookie",
+            "$refreshTokenCookieName=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=None"
+        )
     }
 
     /**
@@ -93,7 +99,7 @@ class TokenCookieUtil {
     fun clearAllTokens(response: HttpServletResponse) {
         // Authorization 헤더 초기화
         response.setHeader(ACCESS_TOKEN_HEADER, "")
-        
+
         // Refresh Token 쿠키 삭제
         deleteRefreshTokenCookie(response)
     }
@@ -109,5 +115,14 @@ class TokenCookieUtil {
         // Refresh Token은 오직 httpOnly 쿠키로만
         setRefreshTokenCookie(response, refreshToken)
     }
-    
+
+    fun createCookie(key: String, value: String): ResponseCookie {
+        return ResponseCookie.from(key, value)
+            .httpOnly(false)
+            .secure(true)
+            .sameSite("None")
+            .maxAge(60 * 60 * 60 * 10)
+            .path("/")
+            .build()
+    }
 }

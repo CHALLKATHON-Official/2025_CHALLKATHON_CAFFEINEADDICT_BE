@@ -32,23 +32,8 @@ spring:
   # Redis 설정 (AWS ElastiCache)
   data:
     redis:
-      cluster:
-        nodes: momento-redis-ro.sh1byh.ng.0001.apn2.cache.amazonaws.com:6379
-        max-redirects: 3
-      timeout: 5000ms
-      connect-timeout: 5000ms
-      lettuce:
-        pool:
-          max-active: 50
-          max-idle: 20
-          min-idle: 10
-          max-wait: 5000ms
-          time-between-eviction-runs: 60000ms
-        shutdown-timeout: 1000ms
-        cluster:
-          refresh:
-            adaptive: true
-            period: 30000ms
+      host: momento-redis-ro.sh1byh.ng.0001.apn2.cache.amazonaws.com
+      port: 6379
 
   # Cache 설정 (개발 환경)
   cache:
