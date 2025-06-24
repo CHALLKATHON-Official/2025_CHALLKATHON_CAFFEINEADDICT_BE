@@ -114,7 +114,7 @@ management:
       show-details: always
     env:
       show-values: always
-  
+
   # Cache 설정 (로컬용)
   cache:
     redis:
