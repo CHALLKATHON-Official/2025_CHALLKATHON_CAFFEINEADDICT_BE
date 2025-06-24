@@ -70,7 +70,15 @@ enum class AuthErrorStatus(
     _INVALID_INPUT_FORMAT(HttpStatus.BAD_REQUEST, "AUTH4082", "입력 형식이 올바르지 않습니다."),
 
     // 가족 역할 에러
-    _ALREADY_SELECT_FAMILY_ROLE(HttpStatus.BAD_REQUEST, "AUTH4090", "이미 가족 역할이 선택되었습니다.")
+    _ALREADY_SELECT_FAMILY_ROLE(HttpStatus.BAD_REQUEST, "AUTH4090", "이미 가족 역할이 선택되었습니다."),
+    
+    // 추가 토큰 관련 에러
+    _REFRESH_TOKEN_VERSION_NOT_FOUND(HttpStatus.UNAUTHORIZED, "AUTH4091", "Refresh Token 버전이 없습니다."),
+    _SECURITY_VIOLATION(HttpStatus.FORBIDDEN, "AUTH4092", "보안 위반: 모든 세션이 무효화되었습니다."),
+    _TOKEN_VERSION_MISMATCH(HttpStatus.UNAUTHORIZED, "AUTH4093", "토큰 버전이 일치하지 않습니다."),
+    
+    // AI 서비스 에러
+    _AI_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AUTH4094", "AI 서비스 오류가 발생했습니다.")
     ;
 
     private val isSuccess = false

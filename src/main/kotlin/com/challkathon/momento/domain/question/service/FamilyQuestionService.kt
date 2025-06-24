@@ -1,6 +1,5 @@
 package com.challkathon.momento.domain.question.service
 
-import com.challkathon.momento.auth.exception.UserNotFoundException
 import com.challkathon.momento.domain.family.entity.Family
 import com.challkathon.momento.domain.family.exception.FamilyException
 import com.challkathon.momento.domain.family.exception.code.FamilyErrorStatus
@@ -10,7 +9,11 @@ import com.challkathon.momento.domain.question.dto.response.FamilyQuestionRespon
 import com.challkathon.momento.domain.question.entity.Question
 import com.challkathon.momento.domain.question.entity.enums.FamilyQuestionStatus
 import com.challkathon.momento.domain.question.entity.mapping.FamilyQuestion
+import com.challkathon.momento.domain.question.exception.QuestionException
+import com.challkathon.momento.domain.question.exception.code.QuestionErrorStatus
 import com.challkathon.momento.domain.question.repository.FamilyQuestionRepository
+import com.challkathon.momento.domain.user.exception.UserException
+import com.challkathon.momento.domain.user.exception.code.UserErrorStatus
 import com.challkathon.momento.domain.user.repository.UserRepository
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
@@ -35,10 +38,10 @@ class FamilyQuestionService(
      */
     fun getTodayQuestions(userId: String): List<FamilyQuestionResponse> {
         val user = userRepository.findById(userId.toLong())
-            .orElseThrow { IllegalArgumentException("사용자를 찾을 수 없습니다: $userId") }
+            .orElseThrow { UserException(UserErrorStatus.USER_NOT_FOUND) }
 
         val family = user.family
-            ?: throw IllegalStateException("가족이 설정되지 않았습니다")
+            ?: throw FamilyException(FamilyErrorStatus.FAMILY_DID_NOT_SET)
 
         return familyQuestionRepository.findTodayQuestionsByFamilyId(family.id!!)
             .map { FamilyQuestionResponse.from(it) }
@@ -53,7 +56,7 @@ class FamilyQuestionService(
         endDate: LocalDate
     ): List<FamilyQuestionResponse> {
         val user = userRepository.findById(userId.toLong())
-            .orElseThrow { UserNotFoundException() }
+            .orElseThrow { UserException(UserErrorStatus.USER_NOT_FOUND) }
 
         val family = user.family
             ?: throw FamilyException(FamilyErrorStatus.FAMILY_DID_NOT_SET)
@@ -101,19 +104,19 @@ class FamilyQuestionService(
     @Transactional
     fun regenerateQuestion(userId: String, familyQuestionId: Long): FamilyQuestionResponse = runBlocking {
         val user = userRepository.findById(userId.toLong())
-            .orElseThrow { UserNotFoundException("사용자를 찾을 수 없습니다: $userId") }
+            .orElseThrow { UserException(UserErrorStatus.USER_NOT_FOUND) }
 
         val familyQuestion = familyQuestionRepository.findById(familyQuestionId)
-            .orElseThrow { IllegalArgumentException("질문을 찾을 수 없습니다: $familyQuestionId") }
+            .orElseThrow { QuestionException(QuestionErrorStatus.FAMILY_QUESTION_NOT_FOUND) }
 
         // 권한 확인
         if (familyQuestion.family.id != user.family?.id!!) {
-            throw IllegalAccessException("해당 질문에 접근할 권한이 없습니다")
+            throw QuestionException(QuestionErrorStatus.QUESTION_INVALID_ACCESS)
         }
 
         // 이미 답변이 있는 경우 재생성 불가
         if (familyQuestion.answers.isNotEmpty()) {
-            throw IllegalStateException("이미 답변이 있는 질문은 재생성할 수 없습니다")
+            throw QuestionException(QuestionErrorStatus.QUESTION_ALREADY_ANSWERED)
         }
 
         // 새 질문 생성
@@ -123,7 +126,7 @@ class FamilyQuestionService(
         )
 
         if (newQuestions.isEmpty()) {
-            throw IllegalStateException("새 질문을 생성할 수 없습니다")
+            throw QuestionException(QuestionErrorStatus.QUESTION_GENERATION_FAILED)
         }
 
         // 기존 질문을 새 질문으로 교체

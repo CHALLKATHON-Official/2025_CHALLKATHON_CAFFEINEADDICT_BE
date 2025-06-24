@@ -6,6 +6,8 @@ import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
+import com.challkathon.momento.auth.exception.OAuth2AuthenticationException
+import com.challkathon.momento.auth.exception.code.AuthErrorStatus
 import com.challkathon.momento.domain.question.config.OpenAIConfig
 import com.challkathon.momento.domain.question.config.PromptConfig
 import com.challkathon.momento.domain.question.dto.MinimalFamilyContext
@@ -31,7 +33,7 @@ class AssistantService(
             OpenAI(token = openAIConfig.apiKey)
         } catch (e: Exception) {
             log.warn { "Failed to initialize OpenAI client: ${e.message}" }
-            throw AIException("OpenAI 클라이언트 초기화 실패", e)
+            throw OAuth2AuthenticationException(AuthErrorStatus._AI_SERVICE_ERROR)
         }
     }
 
@@ -63,13 +65,13 @@ class AssistantService(
             
             val completion = openAI.chatCompletion(chatRequest)
             val content = completion.choices.firstOrNull()?.message?.content
-                ?: throw AIException("OpenAI로부터 응답을 받지 못했습니다")
+                ?: throw OAuth2AuthenticationException(AuthErrorStatus._AI_SERVICE_ERROR)
             
             return parseQuestions(content)
             
         } catch (e: Exception) {
             log.error(e) { "Failed to generate questions for family ${context.familyId}" }
-            throw AIException("질문 생성 실패: ${e.message}", e)
+            throw OAuth2AuthenticationException(AuthErrorStatus._AI_SERVICE_ERROR)
         }
     }
 
@@ -118,7 +120,7 @@ class AssistantService(
             
         } catch (e: Exception) {
             log.error(e) { "Failed to generate questions via streaming for family ${context.familyId}" }
-            throw AIException("스트리밍 질문 생성 실패: ${e.message}", e)
+            throw OAuth2AuthenticationException(AuthErrorStatus._AI_SERVICE_ERROR)
         }
     }
 
@@ -184,4 +186,3 @@ class AssistantService(
     }
 }
 
-class AIException(message: String, cause: Throwable? = null) : RuntimeException(message, cause)

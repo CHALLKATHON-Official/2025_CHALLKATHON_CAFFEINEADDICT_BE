@@ -36,7 +36,7 @@ class FamilyRoleService(
     @Transactional(readOnly = true)
     fun getFamilyRoleStatus(email: String): FamilyRoleStatusResponse {
         val user = userRepository.findByEmail(email)
-            .orElseThrow { RuntimeException("사용자를 찾을 수 없습니다.") }
+            .orElseThrow { UserNotFoundException() }
 
         return FamilyRoleStatusResponse(
             familyRoleSelected = user.familyRoleSelected,

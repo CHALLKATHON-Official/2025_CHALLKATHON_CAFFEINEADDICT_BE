@@ -14,7 +14,8 @@
       "Bash(sed:*)",
       "Bash(docker build:*)",
       "Bash(touch:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(pkill:*)"
     ],
     "deny": []
   }
