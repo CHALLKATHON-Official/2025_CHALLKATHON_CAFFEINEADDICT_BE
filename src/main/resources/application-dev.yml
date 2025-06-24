@@ -102,9 +102,9 @@ app:
     refresh-token:
       name: refreshToken
       max-age: 604800  # 7일
-      secure: false     # HTTP 환경에서는 false
+      secure: true      # HTTPS 환경에서는 true
       http-only: true
-      same-site: lax    # Cross-origin에서는 lax가 더 안전
+      same-site: strict # 보안 강화를 위해 strict 사용
 
 openai:
   model: gpt-4o-mini  # 개발 환경에서는 더 저렴한 모델 사용
