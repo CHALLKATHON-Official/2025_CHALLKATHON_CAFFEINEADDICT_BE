@@ -16,7 +16,6 @@ import jakarta.persistence.Table
 @Entity
 @Table(name = "answer")
 class Answer(
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "family_question_id", nullable = false)
     val familyQuestion: FamilyQuestion,

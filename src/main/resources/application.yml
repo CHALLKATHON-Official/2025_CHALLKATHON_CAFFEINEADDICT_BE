@@ -24,7 +24,7 @@ spring:
 
 # JWT 설정 (공통)
 jwt:
-  secret: dBjftJeZ4CVP+3A/vI1j3eXa9B3Yt7rmNSs9h7q4hcgUv0e7YdCkqOmx2x5XUzd9
+  secret: ${JWT_SECRET}
   issuer: momento
   access-token-expiration: 3600000    # 1시간 (기본값)
   refresh-token-expiration: 604800000 # 7일 (기본값)
@@ -115,7 +115,6 @@ cloud:
 openai:
   api-key: ${OPENAI_API_KEY}
   assistant:
-    id: ${OPENAI_ASSISTANT_ID:}  # 환경변수로 설정, 없으면 자동 생성
     name: momento-family-question-v2
   model: gpt-4-turbo-preview
   max-tokens: 300
@@ -157,4 +156,9 @@ scheduler:
     enabled: ${SCHEDULER_ENABLED:false}  # 운영 환경에서만 true
     cron: "0 0 9 * * *"  # 매일 오전 9시
     timezone: Asia/Seoul
+
+# 질문 할당 설정
+question:
+  assignment:
+    count-per-family: 1  # Family당 할당할 질문 개수
 

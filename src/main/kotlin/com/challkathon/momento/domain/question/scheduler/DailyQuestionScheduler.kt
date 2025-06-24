@@ -55,7 +55,7 @@ class DailyQuestionScheduler(
                         questions = questions
                     )
                     
-                    log.info { "Assigned ${assignedQuestions.size} questions to family ${family.id}" }
+                    log.info { "Assigned ${assignedQuestions.size} question(s) to family ${family.id}" }
                     successCount++
                     
                 } catch (e: Exception) {

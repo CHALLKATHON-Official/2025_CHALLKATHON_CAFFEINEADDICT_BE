@@ -9,6 +9,7 @@ import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.cache.annotation.Cacheable
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -23,6 +24,8 @@ class QuestionGenerationManager(
     private val contextAnalyzer: FamilyContextAnalyzer,
     private val questionRepository: QuestionRepository
 ) {
+    @Value("\${question.assignment.count-per-family:1}")
+    private var questionsPerFamily: Int = 1
     @Autowired(required = false)
     private var assistantService: AssistantService? = null
     
@@ -53,10 +56,10 @@ class QuestionGenerationManager(
         val category = context.preferredCategory ?: QuestionCategory.GENERAL
         val poolQuestions = getQuestionsFromPool(category, family)
         
-        if (poolQuestions.size >= 3) {
+        if (poolQuestions.size >= questionsPerFamily) {
             log.info { "Pool hit for family ${family.id}" }
-            cacheQuestions(family.id, context.hashCode(), poolQuestions)
-            return poolQuestions
+            cacheQuestions(family.id, context.hashCode(), poolQuestions.take(questionsPerFamily))
+            return poolQuestions.take(questionsPerFamily)
         }
         
         // Level 3: AI 생성 (AssistantService가 있는 경우만)
@@ -118,7 +121,7 @@ class QuestionGenerationManager(
         // 카테고리별로 사용 빈도가 낮은 질문 선택
         return questionRepository.findByCategoryAndIsAIGeneratedOrderByUsageCountAscCreatedAtDesc(category, true)
             .filterNot { recentQuestionIds.contains(it.id) }
-            .take(3)
+            .take(questionsPerFamily)
     }
     
     private fun determineCategory(content: String): QuestionCategory {
