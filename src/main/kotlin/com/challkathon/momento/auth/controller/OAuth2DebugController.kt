@@ -53,7 +53,7 @@ class OAuth2DebugController(
         } else {
             mapOf(
                 "message" to "OAuth 시작 테스트 완료",
-                "oauthUrl" to "https://dev.caffeineoverdose.shop/oauth2/authorization/kakao",
+                "oauthUrl" to "/oauth2/authorization/kakao",
                 "instructions" to "브라우저에서 위 URL로 직접 이동하거나 redirect=true 파라미터로 자동 리다이렉트"
             )
         }

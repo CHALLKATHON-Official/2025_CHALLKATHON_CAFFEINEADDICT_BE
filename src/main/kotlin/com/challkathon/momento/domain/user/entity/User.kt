@@ -83,6 +83,9 @@ class User(
     @Column(name = "refresh_token", length = 1000)
     var refreshToken: String? = null,
     
+    @Column(name = "last_active_at")
+    var lastActiveAt: LocalDateTime = LocalDateTime.now(),
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "family_id")
     var family: Family? = null,
@@ -110,6 +113,11 @@ class User(
 
     fun updateLastLogin() {
         this.lastLoginAt = LocalDateTime.now()
+        this.lastActiveAt = LocalDateTime.now()
+    }
+    
+    fun updateLastActive() {
+        this.lastActiveAt = LocalDateTime.now()
     }
 
     fun updateProfile(username: String?, profileImageUrl: String?) {

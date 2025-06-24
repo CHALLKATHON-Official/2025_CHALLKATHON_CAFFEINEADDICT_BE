@@ -20,7 +20,7 @@ spring:
   # JPA 설정 (로컬 개발용)
   jpa:
     hibernate:
-      ddl-auto: create  # 스키마 변경 없음 (기존 DB 구조 유지)
+      ddl-auto: update  # 스키마 변경 없음 (기존 DB 구조 유지)
     show-sql: true
     properties:
       hibernate:
@@ -68,6 +68,13 @@ app:
     refresh-token:
       secure: false  # 로컬에서는 HTTP 허용
       domain: localhost
+      same-site: none  # 크로스 도메인 쿠키 허용
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  model: gpt-4o-mini
+  max-tokens: 300
+  temperature: 0.8
 
 # 서버 설정 (로컬용)
 server:
@@ -75,6 +82,9 @@ server:
   servlet:
     session:
       timeout: 30m
+      cookie:
+        same-site: none
+        secure: false
 
 # 로깅 설정 (로컬 개발용 - 상세 로깅)
 logging:
@@ -112,23 +122,33 @@ management:
     env:
       show-values: always
 
-# 개발 편의 설정
-spring.devtools:
-  restart:
-    enabled: true
-  livereload:
-    enabled: true
+  # Redis 설정 (로컬 개발용)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 3000ms
+      connect-timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: 3000ms
+          time-between-eviction-runs: 60000ms
+        shutdown-timeout: 200ms
 
-cloud:
-  aws:
-    s3:
-      bucket: deft22
-      path:
-        momento: momento   # ← 여기! s3 밑에 있어야 함
-    region:
-      static: ap-northeast-2
-    stack:
-      auto: false
-    credentials:
-      accessKey: ${AWS_ACCESS_KEY_ID}
-      secretKey: ${AWS_SECRET_ACCESS_KEY}
+  # Cache 설정 (로컬용)
+  cache:
+    redis:
+      time-to-live: 3600000  # 1시간 (로컬 개발용)
+      cache-null-values: false
+      key-prefix: "momento:local:"
+      use-key-prefix: true
+
+  # 개발 편의 설정
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true

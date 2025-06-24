@@ -17,6 +17,10 @@ class UserNotFoundException(
     message: String = "사용자를 찾을 수 없습니다"
 ) : BaseException(AuthErrorStatus._USER_NOT_FOUND)
 
+class FamilyRoleException(
+    code: AuthErrorStatus
+) : BaseException(code)
+
 class EmailAlreadyExistsException(
     message: String = "이미 존재하는 이메일입니다"
 ) : BaseException(AuthErrorStatus._EMAIL_ALREADY_EXISTS)

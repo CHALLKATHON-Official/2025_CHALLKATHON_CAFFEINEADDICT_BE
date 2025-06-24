@@ -61,6 +61,17 @@ dependencies {
     // s3의존성 추가
     implementation("com.amazonaws:aws-java-sdk-s3:1.12.659")
 
+
+    // OpenAI API Client
+    implementation("com.aallam.openai:openai-client:3.8.2")
+
+    // Kotlin Coroutines (OpenAI 클라이언트용)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.8.1")
+
+    // Redis for caching
+    implementation("org.springframework.boot:spring-boot-starter-data-redis")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
 }
 
 kotlin {
