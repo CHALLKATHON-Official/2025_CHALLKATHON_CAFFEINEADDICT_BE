@@ -111,7 +111,7 @@ openai:
 
 # 서버 설정 (배포용)
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   servlet:
     session:
       cookie:
