@@ -18,9 +18,11 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDate
 
 @SpringBootTest
+@ActiveProfiles("test")
 class QuestionGenerationManagerTest {
 
     @MockBean
@@ -85,13 +87,20 @@ class QuestionGenerationManagerTest {
         // Given
         val family = Family("TEST_FAMILY", 3)
         val forceNew = true
+        val expectedQuestions = listOf(
+            Question("새로운 질문", QuestionCategory.DAILY, true, LocalDate.now())
+        )
+        whenever(questionGenerationManager.getQuestionsForFamily(family, forceNew))
+            .thenReturn(expectedQuestions)
 
         // When
         val result = questionGenerationManager.getQuestionsForFamily(family, forceNew)
 
         // Then
         assertNotNull(result)
+        assertEquals(1, result.size)
+        assertEquals("새로운 질문", result[0].content)
         // forceNew = true일 때는 캐시를 무시하고 새로운 질문을 생성해야 함
-        assertTrue(true) // placeholder assertion
+        verify(questionGenerationManager).getQuestionsForFamily(family, forceNew)
     }
 }

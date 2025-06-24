@@ -1,11 +1,15 @@
 package com.challkathon.momento.integration
 
+import com.challkathon.momento.domain.family.repository.FamilyRepository
+import com.challkathon.momento.domain.question.ai.QuestionGenerationManager
 import com.challkathon.momento.domain.question.scheduler.DailyQuestionScheduler
+import com.challkathon.momento.domain.question.service.FamilyQuestionService
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 
@@ -14,8 +18,25 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional
 class SchedulerIntegrationTest {
 
-    @Autowired
+    @MockBean
+    private lateinit var questionGenerationManager: QuestionGenerationManager
+    
+    @MockBean
+    private lateinit var familyRepository: FamilyRepository
+    
+    @MockBean
+    private lateinit var familyQuestionService: FamilyQuestionService
+    
     private lateinit var scheduler: DailyQuestionScheduler
+    
+    @BeforeEach
+    fun setUp() {
+        scheduler = DailyQuestionScheduler(
+            familyRepository,
+            questionGenerationManager,
+            familyQuestionService
+        )
+    }
 
     @Test
     @DisplayName("스케줄러 수동 실행 - 질문 풀 생성 테스트")

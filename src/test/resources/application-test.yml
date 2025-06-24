@@ -6,7 +6,7 @@ spring:
     url: jdbc:h2:mem:testdb;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
     driver-class-name: org.h2.Driver
     username: sa
-    password: 
+    password:
   
   jpa:
     hibernate:
@@ -16,6 +16,14 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.H2Dialect
+
+  # H2 Console 활성화 (테스트용)
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
 
   # 테스트용 OAuth2 설정 (Mock)
   security:
@@ -56,6 +64,15 @@ app:
       secure: false
       http-only: true
       same-site: lax
+
+# AI 및 스케줄러 설정 (테스트용)
+openai:
+  api:
+    key: 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
+    base-url: https://api.openai.com/v1
+
+scheduler:
+  enabled: false
 
 # 로깅 설정
 logging:

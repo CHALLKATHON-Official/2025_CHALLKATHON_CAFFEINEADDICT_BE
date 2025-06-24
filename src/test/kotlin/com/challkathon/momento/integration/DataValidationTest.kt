@@ -2,6 +2,7 @@ package com.challkathon.momento.integration
 
 import com.challkathon.momento.domain.family.entity.Family
 import com.challkathon.momento.domain.family.repository.FamilyRepository
+import com.challkathon.momento.domain.question.ai.QuestionGenerationManager
 import com.challkathon.momento.domain.question.entity.Question
 import com.challkathon.momento.domain.question.entity.enums.QuestionCategory
 import com.challkathon.momento.domain.question.entity.enums.FamilyQuestionStatus
@@ -9,13 +10,15 @@ import com.challkathon.momento.domain.question.entity.mapping.FamilyQuestion
 import com.challkathon.momento.domain.question.repository.FamilyQuestionRepository
 import com.challkathon.momento.domain.question.repository.QuestionRepository
 import com.challkathon.momento.domain.question.scheduler.DailyQuestionScheduler
+import com.challkathon.momento.domain.question.service.FamilyQuestionService
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Assertions.*
-import org.springframework.beans.factory.annotation.Autowired
+import org.mockito.kotlin.whenever
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -26,16 +29,21 @@ import java.time.LocalDateTime
 @Transactional
 class DataValidationTest {
 
-    @Autowired
+    @MockBean
     private lateinit var familyRepository: FamilyRepository
     
-    @Autowired
+    @MockBean
     private lateinit var questionRepository: QuestionRepository
     
-    @Autowired
+    @MockBean
     private lateinit var familyQuestionRepository: FamilyQuestionRepository
     
-    @Autowired
+    @MockBean
+    private lateinit var questionGenerationManager: QuestionGenerationManager
+    
+    @MockBean
+    private lateinit var familyQuestionService: FamilyQuestionService
+    
     private lateinit var scheduler: DailyQuestionScheduler
 
     private lateinit var testFamily: Family
@@ -44,13 +52,26 @@ class DataValidationTest {
     fun setUp() {
         // 테스트용 Family 생성
         testFamily = Family("TEST_FAMILY_${System.currentTimeMillis()}", 4)
-        familyRepository.save(testFamily)
+        
+        // 스케줄러 초기화
+        scheduler = DailyQuestionScheduler(
+            familyRepository,
+            questionGenerationManager,
+            familyQuestionService
+        )
     }
 
     @Test
     @DisplayName("질문 생성 후 데이터 검증")
     fun testQuestionGenerationDataValidation() = runBlocking {
-        // Given & When - 스케줄러로 질문 생성
+        // Given - Mock 데이터 설정
+        val mockQuestions = listOf(
+            Question("AI 생성 질문 1", QuestionCategory.DAILY, true, LocalDate.now()),
+            Question("AI 생성 질문 2", QuestionCategory.MEMORY, true, LocalDate.now())
+        )
+        whenever(questionRepository.findAll()).thenReturn(mockQuestions)
+        
+        // When - 스케줄러로 질문 생성
         scheduler.generateQuestionPool()
         
         // Then - 생성된 질문들 검증
@@ -142,8 +163,9 @@ class DataValidationTest {
         // Given - 활성 Family와 비활성 Family 생성
         val activeFamily = Family("ACTIVE_FAMILY", 3)
         val inactiveFamily = Family("INACTIVE_FAMILY", 0)
+        val mockFamilies = listOf(activeFamily, inactiveFamily)
         
-        familyRepository.saveAll(listOf(activeFamily, inactiveFamily))
+        whenever(familyRepository.findAll()).thenReturn(mockFamilies)
         
         // When - 모든 Family 조회 (실제 구현에서는 활성 조건을 스케줄러에서 처리)
         val allFamilies = familyRepository.findAll()

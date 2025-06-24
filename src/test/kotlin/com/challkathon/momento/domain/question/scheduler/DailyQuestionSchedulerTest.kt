@@ -18,10 +18,12 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.mock.mockito.MockBean
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
 import java.time.LocalDate
 
 @SpringBootTest
+@ActiveProfiles("test")
 @TestPropertySource(properties = ["scheduler.enabled=true"])
 class DailyQuestionSchedulerTest {
 
