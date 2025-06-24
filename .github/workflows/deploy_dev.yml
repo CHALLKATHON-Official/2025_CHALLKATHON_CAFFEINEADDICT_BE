@@ -92,14 +92,16 @@ jobs:
       # 10. application-dev.yml 파일 생성 및 전송
       - name: Create and copy application-dev.yml
         run: |
-          # GitHub Secret에서 설정 파일 내용을 가져와 파일로 생성
-          echo "${{ secrets.APPLICATION_DEV_YML }}" > application-dev.yml
-          
+          # 파일 생성
+          cat > application-dev.yml << 'YAML_END'
+          ${{ secrets.APPLICATION_DEV_YML }}
+          YAML_END
+
           # 파일 내용 확인 (디버깅용)
           echo "=== Generated application-dev.yml (first 20 lines) ==="
           head -20 application-dev.yml
           echo "=== End of preview ==="
-          
+
           # EC2로 파일 전송
           scp -i private_key.pem -o StrictHostKeyChecking=no application-dev.yml ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/momento/application-dev.yml
 
