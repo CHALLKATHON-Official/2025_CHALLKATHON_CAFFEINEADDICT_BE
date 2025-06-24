@@ -33,6 +33,22 @@ class AmazonS3Manager(
         }
     }
 
+    fun deleteFile(keyName: String): Boolean {
+        return try {
+            if (amazonS3.doesObjectExist(bucketName, keyName)) {
+                amazonS3.deleteObject(bucketName, keyName)
+                log.info("Deleted file from S3: $keyName")
+                true
+            } else {
+                log.warn("File not found in S3: $keyName")
+                false
+            }
+        } catch (e: Exception) {
+            log.error("Error at AmazonS3Manager.deleteFile: {}", e.stackTraceToString())
+            false
+        }
+    }
+
     fun generateMomentoKeyName(uuid: Uuid): String {
         return "$momentoPath/${uuid.uuid}"
     }
