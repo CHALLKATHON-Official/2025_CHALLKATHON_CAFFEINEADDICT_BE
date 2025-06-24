@@ -67,7 +67,11 @@ enum class AuthErrorStatus(
     // 검증 관련 에러
     _VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "AUTH4080", "입력 데이터 검증에 실패했습니다."),
     _REQUIRED_FIELD_MISSING(HttpStatus.BAD_REQUEST, "AUTH4081", "필수 필드가 누락되었습니다."),
-    _INVALID_INPUT_FORMAT(HttpStatus.BAD_REQUEST, "AUTH4082", "입력 형식이 올바르지 않습니다.");
+    _INVALID_INPUT_FORMAT(HttpStatus.BAD_REQUEST, "AUTH4082", "입력 형식이 올바르지 않습니다."),
+
+    // 가족 역할 에러
+    _ALREADY_SELECT_FAMILY_ROLE(HttpStatus.BAD_REQUEST, "AUTH4090", "이미 가족 역할이 선택되었습니다.")
+    ;
 
     private val isSuccess = false
 

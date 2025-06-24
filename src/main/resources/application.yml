@@ -18,6 +18,10 @@ spring:
           use_second_level_cache: false
           use_query_cache: false
 
+  # Cache 설정 (공통 - Redis는 환경별 설정)
+  cache:
+    type: redis
+
 # JWT 설정 (공통)
 jwt:
   secret: dBjftJeZ4CVP+3A/vI1j3eXa9B3Yt7rmNSs9h7q4hcgUv0e7YdCkqOmx2x5XUzd9
@@ -87,3 +91,51 @@ management:
   endpoint:
     health:
       show-details: never
+
+# OpenAI 설정
+openai:
+  api-key: ${OPENAI_API_KEY}
+  assistant:
+    id: ${OPENAI_ASSISTANT_ID:}  # 환경변수로 설정, 없으면 자동 생성
+    name: momento-family-question-v2
+  model: gpt-4-turbo-preview
+  max-tokens: 300
+  temperature: 0.8
+
+# AI 프롬프트 설정
+ai:
+  prompt:
+    system-instructions: |
+      # 역할
+      당신은 한국 가족들의 소통을 돕는 따뜻한 질문 생성 전문가입니다.
+      
+      # 기본 규칙
+      1. 질문 길이: 10-50자
+      2. 질문 개수: 정확히 3개
+      3. 언어: 한국어, 존댓말
+      4. 톤: 따뜻하고 긍정적
+      5. 난이도: 모든 연령대가 답변 가능
+      
+      # 질문 카테고리
+      - MEMORY: 추억 회상 (예: "가장 행복했던 가족 여행은?")
+      - DAILY: 일상 공유 (예: "오늘 가장 감사한 일은?")
+      - FUTURE: 미래 계획 (예: "올해 가족과 하고 싶은 일은?")
+      - GRATITUDE: 감사 표현 (예: "가족에게 전하고 싶은 말은?")
+      
+      # 출력 형식
+      질문1
+      질문2
+      질문3
+      
+      # 금지 사항
+      - 민감한 주제 (정치, 종교, 돈)
+      - 부정적이거나 갈등 유발 질문
+      - 특정 구성원만 답할 수 있는 질문
+
+# 스케줄러 설정
+scheduler:
+  question-generation:
+    enabled: ${SCHEDULER_ENABLED:false}  # 운영 환경에서만 true
+    cron: "0 0 9 * * *"  # 매일 오전 9시
+    timezone: Asia/Seoul
+

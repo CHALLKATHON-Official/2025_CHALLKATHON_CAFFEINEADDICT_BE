@@ -1,0 +1,79 @@
+# 테스트 환경 설정
+spring:
+  # 인메모리 H2 데이터베이스 설정
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+
+  # JPA 설정 (테스트용)
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+  # Redis 설정 (내장 Redis 또는 Mock 사용)
+  data:
+    redis:
+      host: localhost
+      port: 6370  # 테스트용 포트 (기본 Redis와 구분)
+      timeout: 1000ms
+      connect-timeout: 1000ms
+      lettuce:
+        pool:
+          max-active: 4
+          max-idle: 4
+          min-idle: 1
+          max-wait: 1000ms
+
+  # Cache 설정 (테스트용)
+  cache:
+    type: redis
+    redis:
+      time-to-live: 60000  # 1분 (테스트용 짧은 TTL)
+      cache-null-values: false
+      key-prefix: "momento:test:"
+      use-key-prefix: true
+
+# JWT 설정 (테스트용)
+jwt:
+  secret: test-secret-key-for-unit-testing-purposes-only
+  access-token-expiration: 60000     # 1분
+  refresh-token-expiration: 300000   # 5분
+
+# OpenAI 설정 (테스트용 - Mock)
+openai:
+  api-key: test-api-key
+  model: gpt-3.5-turbo
+  max-tokens: 100
+  temperature: 0.5
+
+# 로깅 설정 (테스트용)
+logging:
+  level:
+    com.challkathon.momento: DEBUG
+    org.springframework.cache: DEBUG
+    redis: WARN
+    org.springframework.test: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 스케줄러 설정 (테스트에서 비활성화)
+scheduler:
+  question-generation:
+    enabled: false
+
+# 액추에이터 설정 (테스트용)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always

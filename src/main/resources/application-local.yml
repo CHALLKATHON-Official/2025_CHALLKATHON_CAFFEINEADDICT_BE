@@ -69,6 +69,12 @@ app:
       secure: false  # 로컬에서는 HTTP 허용
       domain: localhost
 
+openai:
+  api-key: ${OPENAI_API_KEY}
+  model: gpt-4o-mini
+  max-tokens: 300
+  temperature: 0.8
+
 # 서버 설정 (로컬용)
 server:
   port: 8080
@@ -112,9 +118,33 @@ management:
     env:
       show-values: always
 
-# 개발 편의 설정
-spring.devtools:
-  restart:
-    enabled: true
-  livereload:
-    enabled: true
+  # Redis 설정 (로컬 개발용)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 3000ms
+      connect-timeout: 3000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 2
+          max-wait: 3000ms
+          time-between-eviction-runs: 60000ms
+        shutdown-timeout: 200ms
+  
+  # Cache 설정 (로컬용)
+  cache:
+    redis:
+      time-to-live: 3600000  # 1시간 (로컬 개발용)
+      cache-null-values: false
+      key-prefix: "momento:local:"
+      use-key-prefix: true
+
+  # 개발 편의 설정
+  devtools:
+    restart:
+      enabled: true
+    livereload:
+      enabled: true
