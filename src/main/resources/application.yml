@@ -39,10 +39,9 @@ app:
     refresh-token:
       name: refreshToken
       max-age: 604800  # 7일
-      domain: localhost
-      secure: false
+      secure: true
       http-only: true
-      same-site: lax
+      same-site: none
 
 # 서버 설정 (공통)
 server:
@@ -53,6 +52,10 @@ server:
       charset: UTF-8
       enabled: true
       force: true
+    session:
+      cookie:
+        same-site: none
+        secure: true
   # 공통 보안 헤더
   error:
     include-stacktrace: never

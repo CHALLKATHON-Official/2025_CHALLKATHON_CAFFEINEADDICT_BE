@@ -68,6 +68,7 @@ app:
     refresh-token:
       secure: false  # 로컬에서는 HTTP 허용
       domain: localhost
+      same-site: none  # 크로스 도메인 쿠키 허용
 
 openai:
   api-key: ${OPENAI_API_KEY}
@@ -81,6 +82,9 @@ server:
   servlet:
     session:
       timeout: 30m
+      cookie:
+        same-site: none
+        secure: false
 
 # 로깅 설정 (로컬 개발용 - 상세 로깅)
 logging:
