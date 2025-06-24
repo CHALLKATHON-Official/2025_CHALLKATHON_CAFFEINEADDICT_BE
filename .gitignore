@@ -71,3 +71,5 @@ Thumbs.db
 *~
 src/main/resources/application-dev.yml
 application-dev.yml
+application-test.yml
+application-*.yml
