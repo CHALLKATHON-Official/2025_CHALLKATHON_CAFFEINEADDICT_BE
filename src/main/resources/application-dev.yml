@@ -129,17 +129,11 @@ server:
 # 로깅 설정 (배포 서버용 - OAuth2 디버깅 포함)
 logging:
   level:
-    com.challkathon.momento: INFO
-    org.springframework.security: DEBUG
-    org.springframework.security.web.FilterChainProxy: DEBUG
-    org.springframework.security.oauth2: DEBUG
-    org.springframework.web: INFO
-    org.hibernate.SQL: WARN
-    org.springframework.transaction: INFO
-    org.springframework.orm.jpa: WARN
-    org.springframework.boot.actuator: INFO
-  file:
-    name: /var/log/momento/application.log
+    # 성능에 영향을 주는 로그 레벨 조정
+    org.springframework.web.filter.CommonsRequestLoggingFilter: WARN
+    org.apache.http: WARN
+    com.zaxxer.hikari: WARN
+    org.hibernate.engine.internal.StatisticalLoggingSessionEventListener: WARN
 
 # Swagger 설정 (배포용 - 보안 고려)
 springdoc:

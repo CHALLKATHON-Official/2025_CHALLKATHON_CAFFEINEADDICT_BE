@@ -66,8 +66,6 @@ server:
 logging:
   level:
     com.challkathon.momento: INFO
-    org.springframework.security: INFO
-    org.springframework.web: INFO
     root: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
