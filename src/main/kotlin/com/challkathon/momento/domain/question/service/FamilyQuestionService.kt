@@ -5,12 +5,12 @@ import com.challkathon.momento.domain.family.exception.FamilyException
 import com.challkathon.momento.domain.family.exception.code.FamilyErrorStatus
 import com.challkathon.momento.domain.family.repository.FamilyRepository
 import com.challkathon.momento.domain.question.ai.QuestionGenerationManager
-import com.challkathon.momento.domain.question.dto.response.FamilyQuestionResponse
-import com.challkathon.momento.domain.question.dto.response.FamilyQuestionListResponse
-import com.challkathon.momento.domain.question.dto.response.FamilyQuestionSummary
-import com.challkathon.momento.domain.question.dto.response.FamilyQuestionAnswersResponse
-import com.challkathon.momento.domain.question.dto.response.QuestionDetail
 import com.challkathon.momento.domain.question.dto.response.FamilyMemberAnswer
+import com.challkathon.momento.domain.question.dto.response.FamilyQuestionAnswersResponse
+import com.challkathon.momento.domain.question.dto.response.FamilyQuestionListResponse
+import com.challkathon.momento.domain.question.dto.response.FamilyQuestionResponse
+import com.challkathon.momento.domain.question.dto.response.FamilyQuestionSummary
+import com.challkathon.momento.domain.question.dto.response.QuestionDetail
 import com.challkathon.momento.domain.question.entity.Question
 import com.challkathon.momento.domain.question.entity.enums.FamilyQuestionStatus
 import com.challkathon.momento.domain.question.entity.mapping.FamilyQuestion
@@ -112,16 +112,16 @@ class FamilyQuestionService(
             .orElseThrow { UserException(UserErrorStatus.USER_NOT_FOUND) }
 
         val familyQuestion = familyQuestionRepository.findById(familyQuestionId)
-            .orElseThrow { QuestionException(QuestionErrorStatus.FAMILY_QUESTION_NOT_FOUND) }
+            .orElseThrow { QuestionException(QuestionErrorStatus._FAMILY_QUESTION_NOT_FOUND) }
 
         // 권한 확인
         if (familyQuestion.family.id != user.family?.id!!) {
-            throw QuestionException(QuestionErrorStatus.QUESTION_INVALID_ACCESS)
+            throw QuestionException(QuestionErrorStatus._QUESTION_INVALID_ACCESS)
         }
 
         // 이미 답변이 있는 경우 재생성 불가
         if (familyQuestion.answers.isNotEmpty()) {
-            throw QuestionException(QuestionErrorStatus.QUESTION_ALREADY_ANSWERED)
+            throw QuestionException(QuestionErrorStatus._QUESTION_ALREADY_ANSWERED)
         }
 
         // 새 질문 생성
@@ -131,7 +131,7 @@ class FamilyQuestionService(
         )
 
         if (newQuestions.isEmpty()) {
-            throw QuestionException(QuestionErrorStatus.QUESTION_GENERATION_FAILED)
+            throw QuestionException(QuestionErrorStatus._QUESTION_GENERATION_FAILED)
         }
 
         // 기존 질문을 새 질문으로 교체
@@ -182,7 +182,7 @@ class FamilyQuestionService(
 
         // 가족에게 할당된 모든 질문을 최신순으로 조회
         val familyQuestions = familyQuestionRepository.findByFamilyIdOrderByAssignedAtDesc(family.id!!)
-        
+
         val familyMemberCount = family.users.size
 
         val questionSummaries = familyQuestions.mapIndexed { index, familyQuestion ->
@@ -213,11 +213,11 @@ class FamilyQuestionService(
             ?: throw FamilyException(FamilyErrorStatus.FAMILY_DID_NOT_SET)
 
         val familyQuestion = familyQuestionRepository.findById(familyQuestionId)
-            .orElseThrow { QuestionException(QuestionErrorStatus.FAMILY_QUESTION_NOT_FOUND) }
+            .orElseThrow { QuestionException(QuestionErrorStatus._FAMILY_QUESTION_NOT_FOUND) }
 
         // 권한 확인: 같은 가족 구성원만 조회 가능
         if (familyQuestion.family.id != family.id) {
-            throw QuestionException(QuestionErrorStatus.QUESTION_INVALID_ACCESS)
+            throw QuestionException(QuestionErrorStatus._QUESTION_INVALID_ACCESS)
         }
 
         val questionDetail = QuestionDetail(
@@ -229,13 +229,13 @@ class FamilyQuestionService(
 
         // 모든 가족 구성원 정보 가져오기
         val familyMembers = family.users
-        
+
         // 답변한 사용자들의 정보를 Map으로 구성
         val answersMap = familyQuestion.answers.associateBy { it.user.id }
 
         val memberAnswers = familyMembers.map { member ->
             val answer = answersMap[member.id]
-            
+
             FamilyMemberAnswer(
                 answerId = answer?.id,
                 memberName = member.username,
