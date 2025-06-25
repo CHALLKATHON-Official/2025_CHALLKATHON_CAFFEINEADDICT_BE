@@ -18,8 +18,6 @@ spring:
           use_second_level_cache: false
           use_query_cache: false
 
-  # OAuth2 설정은 OAuth2Config.kt에서 동적으로 처리됨
-
   # Cache 설정 (공통 - Redis는 환경별 설정)
   cache:
     type: redis
