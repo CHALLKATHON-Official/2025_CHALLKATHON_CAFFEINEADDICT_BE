@@ -28,7 +28,6 @@ class Family(
     @Column(name = "family_id", nullable = false)
     val id: Long = 0
 
-    // Family.kt
     @OneToMany(mappedBy = "family", cascade = [CascadeType.ALL], orphanRemoval = true)
     val questions: MutableList<FamilyQuestion> = mutableListOf()
 
@@ -38,4 +37,7 @@ class Family(
     @OneToMany(mappedBy = "family", cascade = [CascadeType.ALL])
     val users: MutableList<User> = mutableListOf()
 
+    fun incrementCount() {
+        this.count += 1
+    }
 }
