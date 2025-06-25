@@ -1,71 +1,83 @@
 package com.challkathon.momento.domain.question.controller
 
-import com.challkathon.momento.domain.question.dto.response.FamilyQuestionResponse
-import com.challkathon.momento.domain.question.service.FamilyQuestionService
+import com.challkathon.momento.auth.security.UserPrincipal
+import com.challkathon.momento.domain.question.dto.response.GeneratedQuestionResponse
+import com.challkathon.momento.domain.question.service.ChatGPTQuestionService
 import com.challkathon.momento.global.common.BaseResponse
 import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
-import com.challkathon.momento.auth.security.UserPrincipal
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.web.bind.annotation.*
-import java.time.LocalDate
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/questions")
-@Tag(name = "Question", description = "AI 질문 관련 API")
+@Tag(name = "Question", description = "AI 질문 생성 API")
 class QuestionController(
-    private val familyQuestionService: FamilyQuestionService
+    private val chatGPTQuestionService: ChatGPTQuestionService
 ) {
 
-    @GetMapping("/today")
+    @PostMapping("/generate")
     @Operation(
-        summary = "오늘의 가족 질문 조회",
-        description = "오늘 할당된 가족 질문 목록을 조회합니다."
+        summary = "맞춤형 AI 질문 생성",
+        description = """
+            사용자의 이전 답변 이력을 기반으로 맞춤형 질문을 생성하고 저장합니다.
+            - 생성된 질문은 데이터베이스에 저장됩니다
+            - 24시간 내 최대 5개까지 생성 가능합니다
+            - 중복 질문은 자동으로 필터링됩니다
+        """
     )
-    fun getTodayFamilyQuestions(
-        @AuthenticationPrincipal userPrincipal: UserPrincipal
-    ): ResponseEntity<BaseResponse<List<FamilyQuestionResponse>>> {
-        val questions = familyQuestionService.getTodayQuestions(userPrincipal.displayName)
-        return ResponseEntity.ok(BaseResponse.onSuccess(questions))
-    }
-
-    @GetMapping("/history")
-    @Operation(
-        summary = "가족 질문 히스토리 조회",
-        description = "지정된 기간의 가족 질문 히스토리를 조회합니다."
-    )
-    fun getFamilyQuestionHistory(
-        @AuthenticationPrincipal userPrincipal: UserPrincipal,
-        @Parameter(description = "시작 날짜", required = true)
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) startDate: LocalDate,
-        @Parameter(description = "종료 날짜", required = true)
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) endDate: LocalDate
-    ): ResponseEntity<BaseResponse<List<FamilyQuestionResponse>>> {
-        val questions = familyQuestionService.getQuestionHistory(
-            userId = userPrincipal.displayName,
-            startDate = startDate,
-            endDate = endDate
+    @ApiResponses(
+        ApiResponse(
+            responseCode = "200",
+            description = "질문 생성 성공",
+            content = [Content(
+                mediaType = "application/json",
+                schema = Schema(
+                    example = """
+                    {
+                        "isSuccess": true,
+                        "code": "COMMON200",
+                        "message": "성공",
+                        "data": {
+                            "id": 123,
+                            "content": "오늘 가족과 함께한 시간 중 가장 행복했던 순간은 언제인가요?",
+                            "category": "DAILY",
+                            "isAIGenerated": true,
+                            "generatedAt": "2025-01-15T10:30:00"
+                        }
+                    }
+                """
+                )
+            )]
+        ),
+        ApiResponse(
+            responseCode = "400",
+            description = "잘못된 요청 (일일 생성 한도 초과)"
+        ),
+        ApiResponse(
+            responseCode = "401",
+            description = "인증 실패 (JWT 토큰 없음 또는 만료)"
+        ),
+        ApiResponse(
+            responseCode = "404",
+            description = "사용자를 찾을 수 없음"
+        ),
+        ApiResponse(
+            responseCode = "500",
+            description = "AI 질문 생성 실패"
         )
-        return ResponseEntity.ok(BaseResponse.onSuccess(questions))
-    }
-
-    @PostMapping("/{questionId}/regenerate")
-    @Operation(
-        summary = "질문 재생성",
-        description = "답변하지 않은 질문을 새로운 질문으로 재생성합니다."
     )
-    fun regenerateQuestion(
-        @AuthenticationPrincipal userPrincipal: UserPrincipal,
-        @Parameter(description = "재생성할 질문 ID", required = true)
-        @PathVariable questionId: Long
-    ): ResponseEntity<BaseResponse<FamilyQuestionResponse>> {
-        val newQuestion = familyQuestionService.regenerateQuestion(
-            userId = userPrincipal.displayName,
-            familyQuestionId = questionId
-        )
-        return ResponseEntity.ok(BaseResponse.onSuccess(newQuestion))
+    fun generatePersonalizedQuestion(
+        @AuthenticationPrincipal user: UserPrincipal
+    ): ResponseEntity<BaseResponse<GeneratedQuestionResponse>> {
+        val generatedQuestion = chatGPTQuestionService.generatePersonalizedQuestion(user.id)
+        return ResponseEntity.ok(BaseResponse.onSuccess(generatedQuestion))
     }
 }

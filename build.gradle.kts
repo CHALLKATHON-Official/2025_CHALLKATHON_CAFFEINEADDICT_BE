@@ -63,6 +63,9 @@ dependencies {
 
     // OpenAI API Client
     implementation("com.aallam.openai:openai-client:3.8.2")
+    
+    // Ktor HTTP Client Engine (OpenAI 클라이언트 필수 의존성)
+    implementation("io.ktor:ktor-client-cio:2.3.12")
 
     // Kotlin Coroutines (OpenAI 클라이언트용)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
