@@ -1,13 +1,9 @@
-# 로컬 개발 환경 설정
-# IntelliJ Run Configuration에서 Environment Variables 설정 필요:
-# DB_USERNAME, DB_PASSWORD, JWT_SECRET, KAKAO_CLIENT_ID, KAKAO_CLIENT_SECRET 등
-
 spring:
   # 로컬 개발용 데이터베이스 설정
   datasource:
     url: jdbc:mysql://localhost:3306/momento_db?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true
-    username: ${DB_USERNAME:momento}  # 기본값: momento
-    password: ${DB_PASSWORD:momento123}  # 기본값: momento123
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 10
@@ -16,11 +12,16 @@ spring:
       idle-timeout: 300000
       max-lifetime: 1200000
       pool-name: HikariCP-Local
+  # Redis 설정 (로컬 개발용)
+  data:
+    redis:
+      host: localhost
+      port: 6379
 
   # JPA 설정 (로컬 개발용)
   jpa:
     hibernate:
-      ddl-auto: update  # 스키마 변경 없음 (기존 DB 구조 유지)
+      ddl-auto: create  # 스키마 변경 없음 (기존 DB 구조 유지)
     show-sql: true
     properties:
       hibernate:
@@ -31,21 +32,19 @@ spring:
           lob:
             non_contextual_creation: true
 
-  # OAuth2 설정 (로컬 환경)
+  # OAuth2 설정 (로컬 개발용)
   security:
     oauth2:
       client:
         registration:
           kakao:
-            client-id: ${KAKAO_CLIENT_ID:your-kakao-client-id}  # IntelliJ에서 설정
-            client-secret: ${KAKAO_CLIENT_SECRET:your-kakao-secret}  # IntelliJ에서 설정
-            client-name: kakao
-            authorization-grant-type: authorization_code
-            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
             client-authentication-method: client_secret_post
-            scope:
-              - profile_nickname
-              - account_email
+            authorization-grant-type: authorization_code
+            redirect-uri: "http://localhost:8080/login/oauth2/code/kakao"
+            scope: profile_nickname, account_email
+            client-name: kakao
         provider:
           kakao:
             authorization-uri: https://kauth.kakao.com/oauth/authorize
@@ -53,22 +52,22 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
-# JWT 설정 (로컬 개발용)
-jwt:
-  access-token-expiration: 7200000    # 2시간 (개발 편의를 위해 조금 더 길게)
-  refresh-token-expiration: 604800000 # 7일
-
-# 앱 설정 (로컬 환경 - 기본값 오버라이드)
+# 앱 설정 (로컬 개발용)
 app:
   oauth2:
-    authorized-redirect-uris: http://localhost:3000/oauth2/redirect,http://localhost:3000/login/callback
+    authorized-redirect-uris:
+      - "http://localhost:3000"
+      - "http://localhost:3000/oauth2/redirect"
   cors:
-    allowed-origins: http://localhost:3000,http://localhost:8080,http://127.0.0.1:3000,http://127.0.0.1:8080
+    allowed-origins:
+      - "http://localhost:3000"
   cookie:
     refresh-token:
-      secure: false  # 로컬에서는 HTTP 허용
-      domain: localhost
-      same-site: none  # 크로스 도메인 쿠키 허용
+      name: refreshToken
+      max-age: 604800  # 7일
+      secure: false  # HTTP에서는 false
+      http-only: true
+      same-site: lax
 
 openai:
   api-key: ${OPENAI_API_KEY}
@@ -79,28 +78,49 @@ openai:
 # 서버 설정 (로컬용)
 server:
   port: 8080
-  servlet:
-    session:
-      timeout: 30m
-      cookie:
-        same-site: none
-        secure: false
+  error:
+    include-stacktrace: always
+    include-message: always
+    include-binding-errors: always
 
 # 로깅 설정 (로컬 개발용 - 상세 로깅)
 logging:
   level:
+    # 프로젝트 전체 로깅
     com.challkathon.momento: DEBUG
+    
+    # 인증 관련 상세 로깅
+    com.challkathon.momento.auth: TRACE
+    com.challkathon.momento.auth.filter: TRACE
+    com.challkathon.momento.auth.service: DEBUG
+    com.challkathon.momento.auth.handler: DEBUG
+    
+    # Spring Security 상세 로깅
     org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
+    org.springframework.security.oauth2: TRACE
+    org.springframework.security.oauth2.client: TRACE
+    org.springframework.security.web: DEBUG
+    org.springframework.security.web.authentication: DEBUG
     org.springframework.security.web.FilterChainProxy: DEBUG
     org.springframework.security.web.access.intercept.FilterSecurityInterceptor: DEBUG
+    
+    # JWT 처리 로깅
+    io.jsonwebtoken: DEBUG
+    
+    # CORS 관련 로깅
+    org.springframework.web.cors: DEBUG
+    
+    # MySQL/JPA 로깅
+    org.springframework.orm.jpa: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.springframework.transaction: DEBUG
-    org.springframework.orm.jpa: DEBUG
+    
+    # Root 레벨
+    root: INFO
+
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
 # Swagger 설정 (로컬용 - 모든 기능 활성화)
 springdoc:
@@ -121,22 +141,6 @@ management:
       show-details: always
     env:
       show-values: always
-
-  # Redis 설정 (로컬 개발용)
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      timeout: 3000ms
-      connect-timeout: 3000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 2
-          max-wait: 3000ms
-          time-between-eviction-runs: 60000ms
-        shutdown-timeout: 200ms
 
   # Cache 설정 (로컬용)
   cache:

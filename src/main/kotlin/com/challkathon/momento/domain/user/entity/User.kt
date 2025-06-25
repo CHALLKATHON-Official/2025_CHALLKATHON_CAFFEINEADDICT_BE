@@ -71,21 +71,15 @@ class User(
     @Column(name = "last_login_at")
     var lastLoginAt: LocalDateTime? = null,
 
-    @Column(name = "email_verified")
-    var emailVerified: Boolean = false,
-
     @Column(name = "is_active")
     var isActive: Boolean = true,
-
-    @Column(name = "refresh_token_version", nullable = false)
-    var refreshTokenVersion: Long = 0,
-
+    
     @Column(name = "refresh_token", length = 1000)
     var refreshToken: String? = null,
-    
+
     @Column(name = "last_active_at")
     var lastActiveAt: LocalDateTime = LocalDateTime.now(),
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "family_id")
     var family: Family? = null,
@@ -111,80 +105,8 @@ class User(
     val stories: MutableList<Story> = mutableListOf()
 
 
-    fun updateLastLogin() {
-        this.lastLoginAt = LocalDateTime.now()
-        this.lastActiveAt = LocalDateTime.now()
-    }
-    
-    fun updateLastActive() {
-        this.lastActiveAt = LocalDateTime.now()
-    }
-
-    fun updateProfile(username: String?, profileImageUrl: String?) {
-        username?.let { this.username = it }
-        profileImageUrl?.let { this.profileImageUrl = it }
-    }
-
-    fun deactivate() {
-        this.isActive = false
-    }
-
-    fun activate() {
-        this.isActive = true
-    }
-
-    fun verifyEmail() {
-        this.emailVerified = true
-    }
-
-    fun incrementRefreshTokenVersion(): Long {
-        this.refreshTokenVersion++
-        return this.refreshTokenVersion
-    }
-
-    fun updateRefreshToken(token: String) {
-        this.refreshToken = token
-        this.refreshTokenVersion++
-    }
-
-    fun invalidateAllRefreshTokens() {
-        this.refreshToken = null
-        this.refreshTokenVersion++
-    }
-
-    fun isRefreshTokenMatching(token: String): Boolean {
-        return this.refreshToken == token
-    }
-
-    fun updateFamilyRole(familyRole: FamilyRole) {
-        this.familyRole = familyRole
-        this.familyRoleSelected = true
-    }
-
     fun assignFamily(family: Family) {
         this.family = family
     }
 
-
-    companion object {
-        fun createOAuth2User(
-            email: String,
-            username: String,
-            authProvider: AuthProvider,
-            providerId: String,
-            profileImageUrl: String? = null
-        ): User {
-            return User(
-                email = email,
-                username = username,
-                password = null,
-                providerId = providerId,
-                profileImageUrl = profileImageUrl,
-                authProvider = authProvider,
-                emailVerified = true,
-                familyRole = null,
-                familyRoleSelected = false
-            )
-        }
-    }
 }

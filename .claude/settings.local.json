@@ -15,7 +15,10 @@
       "Bash(docker build:*)",
       "Bash(touch:*)",
       "Bash(grep:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(export SPRING_PROFILES_ACTIVE=dev)",
+      "Bash(rg:*)",
+      "Bash(echo:*)"
     ],
     "deny": []
   }
