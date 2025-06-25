@@ -102,8 +102,15 @@ jobs:
           head -20 application-dev.yml
           echo "=== End of preview ==="
 
-          # EC2로 파일 전송
-          scp -i private_key.pem -o StrictHostKeyChecking=no application-dev.yml ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/momento/application-dev.yml
+          # 먼저 홈 디렉토리로 전송 후 이동
+          scp -i private_key.pem -o StrictHostKeyChecking=no application-dev.yml ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/application-dev.yml
+
+          # SSH로 파일 이동
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            mv ~/application-dev.yml /home/${{ secrets.EC2_USER }}/momento/application-dev.yml
+            chmod 600 /home/${{ secrets.EC2_USER }}/momento/application-dev.yml
+            echo "application-dev.yml moved and permissions set"
+          EOF
 
       # 11. 환경변수를 포함한 start.sh 생성 및 전송
       - name: Create and copy start script

@@ -3,6 +3,7 @@ package com.challkathon.momento.domain.todo.repository
 import com.challkathon.momento.domain.family.entity.Family
 import com.challkathon.momento.domain.todo.mapping.FamilyTodoList
 import com.challkathon.momento.domain.todo.entity.enums.FamilyTodoStatus
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
@@ -55,4 +56,15 @@ interface FamilyTodoListRepository : JpaRepository<FamilyTodoList, Long> {
         AND ftl.status != :completedStatus
     """)
     fun findOverdueTodos(@Param("completedStatus") completedStatus: FamilyTodoStatus = FamilyTodoStatus.COMPLETED): List<FamilyTodoList>
+    
+    /**
+     * 가족별 최신 Todo 목록 조회 (제한된 개수)
+     */
+    @Query("""
+        SELECT ftl FROM FamilyTodoList ftl 
+        JOIN FETCH ftl.todoList 
+        WHERE ftl.family = :family 
+        ORDER BY ftl.assignedAt DESC
+    """)
+    fun findRecentByFamily(@Param("family") family: Family, pageable: Pageable): List<FamilyTodoList>
 }
