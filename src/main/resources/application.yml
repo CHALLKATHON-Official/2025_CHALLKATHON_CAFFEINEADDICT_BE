@@ -17,23 +17,6 @@ spring:
         cache:
           use_second_level_cache: false
           use_query_cache: false
-
-  # CORS 설정 (Spring Boot 측)
-  cors:
-    allowed-origins:
-      - http://localhost:3000
-      - https://momento.vercel.app
-    allowed-methods:
-      - GET
-      - POST
-      - PUT
-      - DELETE
-      - OPTIONS
-    allowed-headers:
-      - "*"
-    allow-credentials: true
-
-
 # JWT 설정 (공통)
 jwt:
   secret: KhRg0qW0UsTEt4OZnoYJYVwIozf+7lTmObBdOegDe55LVDBaSAO3v99r1xJKUskop02F2hVNxP+kGV6dlIUicw==
@@ -43,17 +26,24 @@ jwt:
 # 앱 설정 (기본값)
 app:
   oauth2:
-    authorized-redirect-uris: http://localhost:3000,https://momento.vercel.app
+    authorized-redirect-uris:
+      - http://localhost:3000
+      - https://momento.vercel.app
   cors:
-    allowed-origins: http://localhost:3000,https://momento.vercel.app
+    allowed-origins:
+      - http://localhost:3000
+      - https://localhost:3000
+      - http://127.0.0.1:3000
+      - https://momento.vercel.app
   cookie:
     refresh-token:
       name: refreshToken
       max-age: 604800  # 7일
-      domain: localhost
-      secure: false
+      path: /          # 모든 경로에서 접근 가능
+      # domain은 환경별로 설정
+      # secure는 환경별로 설정
       http-only: true
-      same-site: lax
+      # same-site는 환경별로 설정
 
 # 서버 설정 (공통)
 server:
@@ -64,11 +54,8 @@ server:
       charset: UTF-8
       enabled: true
       force: true
-    session:
-      cookie:
-        same-site: none
-        secure: true
-  # 공통 보안 헤더
+  # 프록시 헤더 전략
+  forward-headers-strategy: native
   error:
     include-stacktrace: never
     include-message: always

@@ -2,13 +2,13 @@ package com.challkathon.momento.domain.story.service
 
 import com.challkathon.momento.auth.exception.AuthException
 import com.challkathon.momento.auth.exception.code.AuthErrorStatus
-import com.challkathon.momento.domain.user.repository.UserRepository
-import com.challkathon.momento.domain.s3.service.AmazonS3Manager
 import com.challkathon.momento.domain.story.Story
 import com.challkathon.momento.domain.story.dto.response.StoryResponse
 import com.challkathon.momento.domain.story.exception.StoryException
 import com.challkathon.momento.domain.story.exception.code.StoryErrorStatus
 import com.challkathon.momento.domain.story.repository.StoryRepository
+import com.challkathon.momento.domain.user.repository.UserRepository
+import com.challkathon.momento.global.infrastructure.AmazonS3Manager
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
@@ -24,7 +24,7 @@ class StoryService(
     @Transactional
     fun createStory(userId: Long, image: MultipartFile) {
         val user = userRepository.findById(userId)
-            .orElseThrow {AuthException(AuthErrorStatus._USER_NOT_FOUND)}
+            .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
 
         val imageUrl = amazonS3Manager.uploadFile(image)
         val expiredAt = LocalDateTime.now().plusHours(24)
