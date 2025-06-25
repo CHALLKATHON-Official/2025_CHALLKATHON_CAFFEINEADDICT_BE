@@ -1,6 +1,7 @@
 package com.challkathon.momento.domain.family.service
 
-import com.challkathon.momento.auth.exception.UserNotFoundException
+import com.challkathon.momento.auth.exception.AuthException
+import com.challkathon.momento.auth.exception.code.AuthErrorStatus
 import com.challkathon.momento.domain.family.dto.response.FamilyCodeResponse
 import com.challkathon.momento.domain.family.entity.Family
 import com.challkathon.momento.domain.family.exception.FamilyAlreadyJoinedException
@@ -20,7 +21,7 @@ class FamilyService(
     @Transactional
     fun createFamily(userId: Long): FamilyCodeResponse {
         val user = userRepository.findById(userId)
-            .orElseThrow { UserNotFoundException("ID: $userId") }
+            .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
 
         if (user.family != null) {
             throw FamilyAlreadyJoinedException()
@@ -39,7 +40,7 @@ class FamilyService(
     @Transactional
     fun joinFamily(userId: Long, inviteCode: String) {
         val user = userRepository.findById(userId)
-            .orElseThrow { UserNotFoundException("ID: $userId") }
+            .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
 
         if (user.family != null) {
             throw FamilyAlreadyJoinedException()
@@ -64,7 +65,7 @@ class FamilyService(
     @Transactional
     fun getFamilyCode(userId: Long): FamilyCodeResponse {
         val user = userRepository.findById(userId)
-            .orElseThrow { UserNotFoundException("ID: $userId") }
+            .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
 
         val family = user.family
             ?: throw FamilyNotJoinedException()
