@@ -120,6 +120,7 @@ class AnswerService(
             content = answer.content,
             authorName = answer.user.username,
             authorProfileImage = answer.user.profileImageUrl,
+            authorFamilyRole = answer.user.familyRole?.name,
             createdAt = answer.createdAt,
             updatedAt = answer.updatedAt
         )

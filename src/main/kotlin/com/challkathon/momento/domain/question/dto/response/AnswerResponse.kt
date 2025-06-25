@@ -10,6 +10,7 @@ data class AnswerResponse(
     val content: String,
     val authorName: String,
     val authorProfileImage: String?,
+    val authorFamilyRole: String?,
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime
 )
