@@ -74,7 +74,7 @@ class User(
     @Column(name = "is_active")
     var isActive: Boolean = true,
 
-    
+
     @Column(name = "refresh_token", length = 1000)
     var refreshToken: String? = null,
 
@@ -105,5 +105,9 @@ class User(
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
     val stories: MutableList<Story> = mutableListOf()
 
+
+    fun assignFamily(family: Family) {
+        this.family = family
+    }
 
 }
