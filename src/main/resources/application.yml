@@ -52,7 +52,7 @@ app:
   oauth2:
     authorized-redirect-uris: http://localhost:3000,http://localhost:3000/oauth2/redirect
   cors:
-    allowed-origins: http://localhost:3000,http://localhost:8080
+    allowed-origins: http://localhost:3000,http://localhost:8080,https://momento.vercel.app
   cookie:
     refresh-token:
       name: refreshToken
@@ -178,3 +178,17 @@ question:
   assignment:
     count-per-family: 1  # Family당 할당할 질문 개수
 
+# CORS 설정 (Spring Boot 측)
+cors:
+  allowed-origins:
+    - http://localhost:3000
+    - https://momento.vercel.app
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed-headers:
+    - "*"
+  allow-credentials: true
