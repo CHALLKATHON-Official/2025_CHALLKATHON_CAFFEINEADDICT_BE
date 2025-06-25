@@ -161,6 +161,11 @@ class User(
         this.familyRoleSelected = true
     }
 
+    fun assignFamily(family: Family) {
+        this.family = family
+    }
+
+
     companion object {
         fun createOAuth2User(
             email: String,
