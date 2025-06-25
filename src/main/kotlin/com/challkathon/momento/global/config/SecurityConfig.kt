@@ -78,6 +78,10 @@ class SecurityConfig(
                         "/swagger-resources/**",
                         "/webjars/**"
                     ).permitAll()
+                    .requestMatchers(
+                        "/api/test/v1/stories/**",
+
+                    ).permitAll()
                     // Public API endpoints
                     .requestMatchers(
                         "/api/v1/auth/login-info",
