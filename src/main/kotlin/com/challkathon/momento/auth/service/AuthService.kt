@@ -1,5 +1,6 @@
 package com.challkathon.momento.auth.service
 
+import com.challkathon.momento.auth.dto.response.UserInfo
 import com.challkathon.momento.auth.entity.RefreshToken
 import com.challkathon.momento.auth.enums.TokenType
 import com.challkathon.momento.auth.exception.AuthException
@@ -87,5 +88,21 @@ class AuthService(
     fun getCurrentUser(userId: Long): User {
         return userRepository.findById(userId)
             .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
+    }
+
+    @Transactional(readOnly = true)
+    fun getCurrentUserInfo(userId: Long): UserInfo {
+        val user = userRepository.findById(userId)
+            .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
+        
+        return UserInfo(
+            id = user.id,
+            email = user.email,
+            username = user.username,
+            profileImageUrl = user.profileImageUrl,
+            familyRole = user.familyRole?.name,
+            familyRoleSelected = user.familyRoleSelected,
+            familyId = user.family?.id
+        )
     }
 }
