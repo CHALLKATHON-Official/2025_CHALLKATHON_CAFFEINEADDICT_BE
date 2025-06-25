@@ -38,14 +38,72 @@
 
 ### 2.1 아키텍처 분석
 
-```mermaid
-Before (문제 상황):
-사용자 요청 → ChatGPTQuestionService → 캐시 확인 → 캐시 미스 → 
-동기적 OpenAI API 호출 (50-60초) → 질문 반환
+#### 2.1.1 개선 전 vs 개선 후 플로우 비교
 
-After (개선 후):
-앱 시작 → QuestionPoolInitializer → 질문 풀 사전 생성 →
-사용자 요청 → ChatGPTQuestionService → 캐시에서 즉시 반환 (9ms)
+```mermaid
+graph TD
+    subgraph "개선 전 - 문제 상황"
+        A1[사용자 요청] --> B1[ChatGPTQuestionService]
+        B1 --> C1{캐시 확인}
+        C1 -->|캐시 미스| D1[동기적 OpenAI API 호출]
+        D1 --> E1[질문 생성 60초]
+        E1 --> F1[응답 반환]
+        
+        style D1 fill:#ffcccc
+        style E1 fill:#ffcccc
+    end
+    
+    subgraph "개선 후 - 해결 방안"
+        A2[앱 시작] --> B2[QuestionPoolInitializer]
+        B2 --> C2[질문 풀 사전 생성]
+        C2 --> D2[서비스 준비 완료]
+        
+        E2[사용자 요청] --> F2[ChatGPTQuestionService]
+        F2 --> G2[캐시에서 즉시 반환 9ms]
+        
+        style C2 fill:#ccffcc
+        style G2 fill:#ccffcc
+    end
+```
+
+#### 2.1.2 시스템 컴포넌트 다이어그램
+
+```mermaid
+graph LR
+    subgraph "Client Layer"
+        U[User Request]
+    end
+    
+    subgraph "Service Layer"
+        CGS[ChatGPTQuestionService]
+        QPS[QuestionPoolService]
+        QPI[QuestionPoolInitializer]
+        QGS[QuestionGeneratorService]
+    end
+    
+    subgraph "Cache Layer"
+        R[(Redis Cache)]
+    end
+    
+    subgraph "External APIs"
+        OAI[OpenAI API]
+    end
+    
+    subgraph "Database"
+        DB[(MySQL)]
+    end
+    
+    U --> CGS
+    CGS --> QPS
+    QPS --> R
+    QPI --> QPS
+    QPS --> QGS
+    QGS --> OAI
+    CGS --> DB
+    
+    style R fill:#e1f5fe
+    style OAI fill:#fff3e0
+    style QPI fill:#e8f5e8
 ```
 
 ### 2.2 병목 지점 상세 분석
@@ -103,21 +161,83 @@ val question = getQuestionFromPool(category) ?: generateQuestionSync() // ← �
 3. **앱 시작 시 준비**: 애플리케이션 시작과 동시에 질문 풀 준비 완료
 
 #### 3.1.2 3-Tier 캐싱 전략
+
+```mermaid
+graph TD
+    subgraph "Level 1: Redis Cache (Primary)"
+        RC[Redis Cache Pool]
+        RC --> RD1[DAILY: 50개]
+        RC --> RD2[MEMORY: 50개]
+        RC --> RD3[FUTURE: 50개]
+        RC --> RD4[GRATITUDE: 50개]
+        RC --> RD5[GENERAL: 50개]
+    end
+    
+    subgraph "Level 2: Async Refill (Secondary)"
+        AR[비동기 보충 로직]
+        AR --> AI[OpenAI API 호출]
+        AI --> NG[새 질문 생성]
+        NG --> RC
+    end
+    
+    subgraph "Level 3: Fallback (Tertiary)"
+        FB[폴백 질문 풀]
+        FB --> FD1[기본 DAILY 질문들]
+        FB --> FD2[기본 MEMORY 질문들]
+        FB --> FD3[기본 FUTURE 질문들]
+        FB --> FD4[기본 GRATITUDE 질문들]
+        FB --> FD5[기본 GENERAL 질문들]
+    end
+    
+    UR[사용자 요청] --> RC
+    RC -->|풀 30% 미만| AR
+    RC -->|캐시 미스| FB
+    
+    style RC fill:#e1f5fe
+    style AR fill:#f3e5f5
+    style FB fill:#fff8e1
+    style UR fill:#e8f5e8
 ```
-Level 1: 즉시 응답 (Redis Cache)
-├── 카테고리별 20-50개 질문 상시 보유
-├── 사용자 요청 시 즉시 반환 (9ms)
-└── 사용 후 풀에서 제거
 
-Level 2: 백그라운드 보충 (Async Refill)
-├── 풀이 30% 이하로 떨어지면 자동 트리거
-├── 비동기로 AI 질문 생성
-└── 사용자 경험에 영향 없음
+#### 3.1.3 질문 생성 플로우 다이어그램
 
-Level 3: 폴백 질문 (Fallback)
-├── AI 생성 실패 시 미리 정의된 질문 사용
-├── 카테고리별 기본 질문 pool 보유
-└── 서비스 중단 방지
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant CGS as ChatGPTQuestionService
+    participant QPS as QuestionPoolService
+    participant RC as Redis Cache
+    participant QGS as QuestionGeneratorService
+    participant AI as OpenAI API
+    
+    Note over U,AI: 개선된 질문 생성 플로우
+    
+    U->>CGS: 질문 생성 요청
+    CGS->>QPS: getQuestionFromCache()
+    QPS->>RC: 캐시에서 질문 조회
+    
+    alt 캐시 히트
+        RC-->>QPS: 질문 반환 (9ms)
+        QPS-->>CGS: 즉시 응답
+        CGS-->>U: 질문 제공
+        
+        Note over QPS: 백그라운드에서 풀 상태 확인
+        QPS->>QPS: checkAndRefillPoolAsync()
+        
+        alt 풀이 30% 미만
+            QPS->>QGS: 비동기 질문 생성 요청
+            QGS->>AI: API 호출
+            AI-->>QGS: 새 질문들 반환
+            QGS-->>QPS: 질문들 전달
+            QPS->>RC: 풀에 질문들 추가
+        end
+        
+    else 캐시 미스 (매우 드문 경우)
+        RC-->>QPS: null 반환
+        QPS->>QPS: getDefaultQuestion()
+        QPS-->>CGS: 폴백 질문 반환
+        CGS-->>U: 폴백 질문 제공
+    end
 ```
 
 ### 3.2 애플리케이션 Warm-up 전략
@@ -133,17 +253,55 @@ fun initializeQuestionPoolOnStartup() {
 ```
 
 #### 3.2.2 단계별 초기화 프로세스
+
+```mermaid
+graph TD
+    A[Spring Boot 앱 시작] --> B[Bean 초기화]
+    B --> C[ApplicationReadyEvent 발생]
+    C --> D[QuestionPoolInitializer 실행]
+    
+    D --> E{AI API 사용 가능?}
+    E -->|Yes| F[OpenAI API로 질문 생성]
+    E -->|No| G[폴백 질문으로 초기화]
+    
+    F --> H[Redis에 질문 저장]
+    G --> H
+    
+    H --> I[카테고리별 풀 검증]
+    I --> J{모든 카테고리 준비?}
+    J -->|Yes| K[서비스 준비 완료]
+    J -->|No| L[부족한 카테고리 보충]
+    L --> I
+    
+    K --> M[첫 사용자 요청 즉시 응답 가능]
+    
+    style A fill:#e3f2fd
+    style K fill:#e8f5e8
+    style M fill:#e8f5e8
+    style F fill:#fff3e0
+    style G fill:#fff8e1
 ```
-1. Spring Boot 앱 시작
-2. 모든 Bean 초기화 완료
-3. ApplicationReadyEvent 발생
-4. QuestionPoolInitializer 실행
-   ├── AI API 연결 테스트
-   ├── Redis 연결 확인
-   ├── 카테고리별 질문 풀 채우기
-   └── 폴백 질문 준비
-5. 서비스 준비 완료 로그
-6. 첫 사용자 요청도 즉시 응답 가능
+
+#### 3.2.3 성능 개선 타임라인
+
+```mermaid
+gantt
+    title 질문 생성 성능 개선 타임라인
+    dateFormat X
+    axisFormat %Lms
+    
+    section 개선 전
+    첫 질문 요청           :crit, before1, 0, 60000
+    OpenAI API 호출        :crit, api1, 0, 50000
+    질문 생성 및 저장      :done, save1, 50000, 60000
+    
+    section 개선 후 (앱 시작시)
+    앱 초기화             :done, init, 0, 2000
+    질문 풀 사전 생성     :done, preload, 2000, 5000
+    
+    section 개선 후 (사용자 요청)
+    질문 요청             :active, after1, 0, 9
+    캐시에서 반환         :active, cache1, 0, 9
 ```
 
 ## 4. 🔧 구현 세부사항 (Implementation Details)
@@ -360,14 +518,36 @@ companion object {
 2024-01-15T10:31:15.467 [http-nio-8080-exec-1] INFO  ChatGPTQuestionService - 💾 사용자 12345를 위한 질문 저장 완료: 67890 (총 응답시간: 9ms)
 ```
 
-### 5.4 사용자 경험 개선 효과
+### 5.4 성능 개선 시각화
 
-#### 5.4.1 정량적 개선
+#### 5.4.1 응답 시간 비교 차트
+
+```mermaid
+xychart-beta
+    title "질문 생성 응답 시간 비교 (밀리초)"
+    x-axis ["첫 질문", "2번째 질문", "3번째 질문", "4번째 질문", "5번째 질문"]
+    y-axis "응답 시간 (ms)" 0 --> 65000
+    
+    bar [60000, 9, 9, 9, 9]
+    line [9, 9, 9, 9, 9]
+```
+
+#### 5.4.2 성능 개선 효과 차트
+
+```mermaid
+pie title 성능 개선 비율
+    "개선된 시간" : 99.985
+    "기존 시간" : 0.015
+```
+
+#### 5.4.3 사용자 경험 개선 효과
+
+**정량적 개선:**
 - **첫 사용 시 대기 시간**: 60초 → 0초
-- **응답 시간 일관성**: 불규칙 → 항상 9ms
+- **응답 시간 일관성**: 불규칙 → 항상 9ms  
 - **서비스 가용성**: 60초 블로킹 → 즉시 응답
 
-#### 5.4.2 정성적 개선
+**정성적 개선:**
 - **첫 인상 개선**: 앱이 느리다는 인식 제거
 - **사용자 신뢰도**: 일관된 빠른 응답으로 신뢰감 증대
 - **이탈률 감소**: 첫 사용에서의 대기 시간 제거로 이탈 방지
@@ -443,19 +623,64 @@ try {
 ```
 
 #### 6.3.3 다층 복원력 설계
+
+```mermaid
+graph TD
+    UR[사용자 요청] --> L1{Level 1: Redis Cache}
+    L1 -->|정상| R1[9ms 응답]
+    L1 -->|장애| L2{Level 2: Fallback Questions}
+    
+    L2 -->|사용 가능| R2[카테고리별 기본 질문]
+    L2 -->|모든 장애| L3[Level 3: Emergency Questions]
+    
+    L3 --> R3[범용 기본 질문]
+    
+    subgraph "복원력 계층"
+        L1C[Redis Cache<br/>• AI 생성 질문<br/>• 9ms 응답<br/>• 최고 품질]
+        L2C[Fallback Questions<br/>• 미리 정의된 질문<br/>• 하드코딩<br/>• 100% 가용성]
+        L3C[Emergency Questions<br/>• 최소한의 질문<br/>• 서비스 연속성 보장<br/>• 최후 보루]
+    end
+    
+    style L1 fill:#e1f5fe
+    style L2 fill:#fff3e0
+    style L3 fill:#ffebee
+    style R1 fill:#e8f5e8
+    style R2 fill:#fff8e1
+    style R3 fill:#fce4ec
 ```
-Level 1: Redis Cache (Primary)
-├── 정상 동작 시 9ms 응답
-└── 장애 시 Level 2로 폴백
 
-Level 2: Fallback Questions (Secondary)  
-├── 카테고리별 미리 정의된 질문
-├── 하드코딩되어 있어 항상 사용 가능
-└── 장애 시에도 서비스 중단 없음
+#### 6.3.4 장애 대응 플로우
 
-Level 3: Emergency Questions (Tertiary)
-├── 가장 기본적인 범용 질문
-└── 모든 시스템 장애 시 최후 보루
+```mermaid
+flowchart TD
+    START[질문 생성 요청] --> TRY1[Redis에서 질문 조회 시도]
+    
+    TRY1 --> CHECK1{Redis 응답 성공?}
+    CHECK1 -->|YES| SUCCESS1[질문 반환 - 9ms]
+    CHECK1 -->|NO| LOG1[Redis 오류 로깅]
+    
+    LOG1 --> TRY2[Fallback 질문 조회]
+    TRY2 --> CHECK2{Fallback 질문 사용 가능?}
+    CHECK2 -->|YES| SUCCESS2[기본 질문 반환 - 100ms]
+    CHECK2 -->|NO| LOG2[Fallback 오류 로깅]
+    
+    LOG2 --> TRY3[Emergency 질문 사용]
+    TRY3 --> SUCCESS3[최소 질문 반환 - 1ms]
+    
+    SUCCESS1 --> MONITOR[백그라운드 풀 상태 확인]
+    SUCCESS2 --> ALERT[장애 알림 발송]
+    SUCCESS3 --> CRITICAL[심각한 장애 알림]
+    
+    MONITOR --> END[정상 응답 완료]
+    ALERT --> END
+    CRITICAL --> END
+    
+    style TRY1 fill:#e1f5fe
+    style TRY2 fill:#fff3e0
+    style TRY3 fill:#ffebee
+    style SUCCESS1 fill:#e8f5e8
+    style SUCCESS2 fill:#fff8e1
+    style SUCCESS3 fill:#fce4ec
 ```
 
 ### 6.4 보안 고려사항
@@ -475,24 +700,69 @@ Level 3: Emergency Questions (Tertiary)
 ### 7.1 성능 지표 추적
 
 #### 7.1.1 핵심 메트릭 (KPI)
+
+```mermaid
+mindmap
+  root((모니터링 메트릭))
+    응답 시간
+      question_generation_duration_ms
+      cache_hit_rate
+      pool_refill_duration_ms
+    풀 상태
+      question_pool_size_by_category
+      pool_refill_frequency
+      fallback_question_usage_rate
+    에러 지표
+      openai_api_error_rate
+      redis_connection_error_rate
+      question_generation_error_rate
+    비즈니스 지표
+      user_satisfaction_score
+      first_question_success_rate
+      daily_active_questions
 ```
-응답 시간 메트릭:
-- question_generation_duration_ms: 질문 생성 소요 시간
-- cache_hit_rate: 캐시 히트 비율
-- pool_refill_duration_ms: 풀 보충 소요 시간
 
-풀 상태 메트릭:
-- question_pool_size_by_category: 카테고리별 풀 크기
-- pool_refill_frequency: 풀 보충 빈도
-- fallback_question_usage_rate: 폴백 질문 사용 비율
+#### 7.1.2 모니터링 대시보드 구조
 
-에러 메트릭:
-- openai_api_error_rate: OpenAI API 오류율
-- redis_connection_error_rate: Redis 연결 오류율
-- question_generation_error_rate: 질문 생성 실패율
+```mermaid
+graph TB
+    subgraph "실시간 대시보드"
+        D1[응답 시간 차트]
+        D2[캐시 히트율 게이지]
+        D3[풀 크기 현황]
+        D4[에러율 그래프]
+    end
+    
+    subgraph "데이터 수집"
+        L1[Application Logs]
+        L2[Micrometer Metrics]
+        L3[Redis Monitoring]
+        L4[Custom Metrics]
+    end
+    
+    subgraph "알림 시스템"
+        A1[Slack 알림]
+        A2[Email 알림]
+        A3[SMS 알림]
+    end
+    
+    L1 --> D1
+    L2 --> D2
+    L3 --> D3
+    L4 --> D4
+    
+    D1 --> A1
+    D2 --> A2
+    D3 --> A3
+    D4 --> A1
+    
+    style D1 fill:#e3f2fd
+    style D2 fill:#e8f5e8
+    style D3 fill:#fff3e0
+    style D4 fill:#ffebee
 ```
 
-#### 7.1.2 로그 기반 모니터링
+#### 7.1.3 로그 기반 모니터링
 ```bash
 # 응답 시간 모니터링
 grep "캐시에서 질문 가져옴" application.log | awk '{print $NF}' | sed 's/ms)//' | sort -n
@@ -617,6 +887,106 @@ Monthly:
    - 문화적 맥락을 고려한 질문 생성
 ```
 
+## 🏗️ 전체 시스템 아키텍처
+
+### 개선된 시스템 전체 구조
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        U[Mobile/Web Users]
+    end
+    
+    subgraph "API Gateway"
+        GW[API Gateway<br/>Load Balancer]
+    end
+    
+    subgraph "Application Layer"
+        CGS[ChatGPTQuestionService<br/>• 질문 생성 API<br/>• 사용자 요청 처리<br/>• 9ms 응답 보장]
+        QPS[QuestionPoolService<br/>• 캐시 관리<br/>• 비동기 풀 보충<br/>• 폴백 처리]
+        QPI[QuestionPoolInitializer<br/>• 앱 시작 시 초기화<br/>• ApplicationReadyEvent<br/>• Warm-up 담당]
+        QGS[QuestionGeneratorService<br/>• OpenAI API 연동<br/>• AI 질문 생성<br/>• 백그라운드 처리]
+    end
+    
+    subgraph "Cache Layer"
+        RC[(Redis Cache<br/>질문 풀 저장)]
+        subgraph "Cache Structure"
+            C1[DAILY: 50개]
+            C2[MEMORY: 50개] 
+            C3[FUTURE: 50개]
+            C4[GRATITUDE: 50개]
+            C5[GENERAL: 50개]
+        end
+    end
+    
+    subgraph "External APIs"
+        OAI[OpenAI API<br/>GPT-4 Assistant]
+    end
+    
+    subgraph "Database"
+        DB[(MySQL<br/>질문/답변 저장)]
+    end
+    
+    subgraph "Monitoring"
+        LOG[Application Logs]
+        MET[Metrics Collection]
+        DASH[Grafana Dashboard]
+        ALERT[Alert Manager]
+    end
+    
+    subgraph "Fallback System"
+        FB1[Fallback Questions<br/>카테고리별 기본 질문]
+        FB2[Emergency Questions<br/>최소 범용 질문]
+    end
+    
+    %% User Flow
+    U --> GW
+    GW --> CGS
+    
+    %% Service Interactions
+    CGS --> QPS
+    QPS --> RC
+    RC --> C1
+    RC --> C2
+    RC --> C3
+    RC --> C4
+    RC --> C5
+    
+    %% Initialization
+    QPI --> QPS
+    QPI --> QGS
+    
+    %% Background Processing
+    QPS --> QGS
+    QGS --> OAI
+    
+    %% Fallback Chain
+    QPS --> FB1
+    FB1 --> FB2
+    
+    %% Data Persistence
+    CGS --> DB
+    
+    %% Monitoring
+    CGS --> LOG
+    QPS --> MET
+    LOG --> DASH
+    MET --> DASH
+    DASH --> ALERT
+    
+    %% Styling
+    style U fill:#e8f5e8
+    style CGS fill:#e1f5fe
+    style QPS fill:#e1f5fe
+    style QPI fill:#e8f5e8
+    style RC fill:#e3f2fd
+    style OAI fill:#fff3e0
+    style DB fill:#f3e5f5
+    style FB1 fill:#fff8e1
+    style FB2 fill:#ffebee
+    style DASH fill:#e0f2f1
+```
+
 ## 📝 결론
 
 ### 주요 성과
@@ -624,6 +994,28 @@ Monthly:
 2. **일관된 사용자 경험**: 모든 요청이 동일한 응답 시간 보장
 3. **확장 가능한 아키텍처**: 동시 사용자 증가에 대응 가능한 구조 구축
 4. **장애 복원력**: 다층 폴백 메커니즘으로 서비스 안정성 확보
+
+### 아키텍처 설계 원칙 달성
+```mermaid
+mindmap
+  root((성과 요약))
+    성능 최적화
+      60초 → 9ms
+      99.985% 개선
+      일관된 응답 시간
+    사용자 경험
+      첫 인상 개선
+      대기 시간 제거
+      신뢰성 향상
+    기술적 안정성
+      3계층 폴백 시스템
+      자동 복구 메커니즘
+      실시간 모니터링
+    확장성
+      Redis 기반 캐싱
+      비동기 처리
+      무제한 동시 사용자
+```
 
 ### 기술적 의의
 - **Cache-First 아키텍처**: 사용자 경험 우선의 설계 철학 구현
