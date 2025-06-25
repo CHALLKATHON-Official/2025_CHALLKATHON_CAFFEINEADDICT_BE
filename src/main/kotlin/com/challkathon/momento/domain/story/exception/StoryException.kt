@@ -5,9 +5,5 @@ import com.challkathon.momento.global.exception.BaseException
 
 // 공통 상위 예외
 open class StoryException(
-    errorStatus: StoryErrorStatus,
-) : BaseException(errorStatus)
-
-class StoryNotFoundException(
-    message: String = "스토리를 찾을 수 없습니다."
-) : StoryException(StoryErrorStatus.STORY_NOT_FOUND)
+    code: StoryErrorStatus,
+) : BaseException(code)

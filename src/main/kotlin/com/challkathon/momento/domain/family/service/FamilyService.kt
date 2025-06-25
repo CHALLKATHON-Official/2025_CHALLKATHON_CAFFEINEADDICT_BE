@@ -4,9 +4,8 @@ import com.challkathon.momento.auth.exception.AuthException
 import com.challkathon.momento.auth.exception.code.AuthErrorStatus
 import com.challkathon.momento.domain.family.dto.response.FamilyCodeResponse
 import com.challkathon.momento.domain.family.entity.Family
-import com.challkathon.momento.domain.family.exception.FamilyAlreadyJoinedException
-import com.challkathon.momento.domain.family.exception.FamilyInviteCodeNotFoundException
-import com.challkathon.momento.domain.family.exception.FamilyNotJoinedException
+import com.challkathon.momento.domain.family.exception.FamilyException
+import com.challkathon.momento.domain.family.exception.code.FamilyErrorStatus
 import com.challkathon.momento.domain.family.repository.FamilyRepository
 import com.challkathon.momento.domain.user.repository.UserRepository
 import jakarta.transaction.Transactional
@@ -24,7 +23,7 @@ class FamilyService(
             .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
 
         if (user.family != null) {
-            throw FamilyAlreadyJoinedException()
+            throw FamilyException(FamilyErrorStatus.FAMILY_ALREADY_JOINED)
         }
 
         val inviteCode = generateUniqueCode()
@@ -43,11 +42,11 @@ class FamilyService(
             .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
 
         if (user.family != null) {
-            throw FamilyAlreadyJoinedException()
+            throw FamilyException(FamilyErrorStatus.FAMILY_ALREADY_JOINED)
         }
 
         val targetFamily = familyRepository.findByInviteCode(inviteCode)
-            ?: throw FamilyInviteCodeNotFoundException()
+            ?: throw FamilyException(FamilyErrorStatus.INVITE_CODE_NOT_FOUND)
 
         user.assignFamily(targetFamily)
         targetFamily.incrementCount()
@@ -68,7 +67,7 @@ class FamilyService(
             .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
 
         val family = user.family
-            ?: throw FamilyNotJoinedException()
+            ?: throw FamilyException(FamilyErrorStatus.FAMILY_NOT_JOINED)
 
         return FamilyCodeResponse(family.inviteCode)
     }
