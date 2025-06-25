@@ -49,8 +49,6 @@ class OAuth2AuthenticationSuccessHandler(
         response: HttpServletResponse,
         authentication: Authentication
     ): String {
-        val redirectUri = "http://localhost:3000"
-        
         val userPrincipal = authentication.principal as UserPrincipal
         val user = userRepository.findById(userPrincipal.id).orElseThrow()
         
@@ -69,11 +67,27 @@ class OAuth2AuthenticationSuccessHandler(
         // Refresh Token 쿠키 설정
         cookieUtil.addRefreshTokenCookie(response, refreshToken)
         
-        // Access Token을 Authorization 헤더로 설정
-        response.setHeader("Authorization", "Bearer $accessToken")
+        // 환경별 프론트엔드 URL 결정
+        val frontendUrl = determineFrontendUrl(request)
         
-        // 단순 리다이렉트 (쿼리 파라미터 없음)
-        return redirectUri
+        // Access Token을 쿼리 파라미터로 전달 (리다이렉트에서 헤더는 소실됨)
+        return UriComponentsBuilder.fromUriString(frontendUrl)
+            .queryParam("token", accessToken)
+            .queryParam("loginSuccess", "true")
+            .build().toUriString()
+    }
+    
+    private fun determineFrontendUrl(request: HttpServletRequest): String {
+        // Referer나 특정 헤더를 통해 환경 구분, 또는 환경변수 사용
+        val origin = request.getHeader("Origin")
+        return when {
+            // localhost 환경
+            origin?.contains("localhost:3000") == true -> "http://localhost:3000"
+            // 운영 환경
+            origin?.contains("momento.vercel.app") == true -> "https://momento.vercel.app"
+            // 기본값 (개발)
+            else -> "http://localhost:3000"
+        }
     }
 
     private fun isAuthorizedRedirectUri(uri: String): Boolean {

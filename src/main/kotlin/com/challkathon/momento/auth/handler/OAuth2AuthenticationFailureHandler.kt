@@ -18,7 +18,10 @@ class OAuth2AuthenticationFailureHandler : SimpleUrlAuthenticationFailureHandler
         response: HttpServletResponse,
         exception: AuthenticationException
     ) {
-        val targetUrl = UriComponentsBuilder.fromUriString("http://localhost:3000")
+        // 환경별 프론트엔드 URL 결정
+        val frontendUrl = determineFrontendUrl(request)
+        
+        val targetUrl = UriComponentsBuilder.fromUriString(frontendUrl)
             .queryParam("error", "authentication_failed")
             .queryParam("message", exception.localizedMessage)
             .build().toUriString()
@@ -26,5 +29,17 @@ class OAuth2AuthenticationFailureHandler : SimpleUrlAuthenticationFailureHandler
         logger.error { "OAuth2 authentication failed: ${exception.message}" }
         
         redirectStrategy.sendRedirect(request, response, targetUrl)
+    }
+    
+    private fun determineFrontendUrl(request: HttpServletRequest): String {
+        val origin = request.getHeader("Origin")
+        return when {
+            // localhost 환경
+            origin?.contains("localhost:3000") == true -> "http://localhost:3000"
+            // 운영 환경
+            origin?.contains("momento.vercel.app") == true -> "https://momento.vercel.app"
+            // 기본값 (개발)
+            else -> "http://localhost:3000"
+        }
     }
 }

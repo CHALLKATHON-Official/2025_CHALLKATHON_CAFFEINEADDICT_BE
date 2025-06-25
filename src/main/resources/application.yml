@@ -27,7 +27,7 @@ spring:
             client-secret: ${KAKAO_CLIENT_SECRET}
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
-            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
+            redirect-uri: https://dev.caffeineoverdose.shop/login/oauth2/code/kakao
             scope: profile_nickname, account_email
             client-name: kakao
         provider:
@@ -50,9 +50,9 @@ jwt:
 # 앱 설정 (기본값)
 app:
   oauth2:
-    authorized-redirect-uris: http://localhost:3000,http://localhost:3000/oauth2/redirect
+    authorized-redirect-uris: http://localhost:3000,https://momento.vercel.app
   cors:
-    allowed-origins: http://localhost:3000,http://localhost:8080,https://momento.vercel.app
+    allowed-origins: http://localhost:3000,https://momento.vercel.app
   cookie:
     refresh-token:
       name: refreshToken
