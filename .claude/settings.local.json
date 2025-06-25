@@ -18,7 +18,8 @@
       "Bash(pkill:*)",
       "Bash(export SPRING_PROFILES_ACTIVE=dev)",
       "Bash(rg:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(SPRING_PROFILES_ACTIVE=local ./gradlew bootRun --no-daemon)"
     ],
     "deny": []
   }

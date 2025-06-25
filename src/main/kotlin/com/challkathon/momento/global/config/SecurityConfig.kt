@@ -26,7 +26,7 @@ class SecurityConfig(
     private val oAuth2AuthenticationFailureHandler: OAuth2AuthenticationFailureHandler,
     private val jwtAuthenticationFilter: JwtAuthenticationFilter,
     @Value("\${app.cors.allowed-origins}")
-    private val allowedOrigins: List<String>
+    private val allowedOrigins: String
 ) {
 
     @Bean
@@ -59,8 +59,8 @@ class SecurityConfig(
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
         val configuration = CorsConfiguration().apply {
-            // 환경변수에서 가져온 값 사용
-            allowedOrigins = this@SecurityConfig.allowedOrigins
+            // 환경변수에서 가져온 값 사용 (콤마로 구분된 문자열을 리스트로 변환)
+            allowedOrigins = this@SecurityConfig.allowedOrigins.split(",").map { it.trim() }
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD")
             allowedHeaders = listOf("*")
             exposedHeaders = listOf("Authorization", "Set-Cookie", "Content-Type")

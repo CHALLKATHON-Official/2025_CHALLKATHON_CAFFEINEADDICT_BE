@@ -7,8 +7,8 @@ import com.challkathon.momento.domain.message.entity.Message
 import com.challkathon.momento.domain.message.exception.MessageException
 import com.challkathon.momento.domain.message.exception.code.MessageErrorStatus
 import com.challkathon.momento.domain.message.repository.MessageRepository
-import com.challkathon.momento.domain.s3.service.AmazonS3Manager
 import com.challkathon.momento.domain.user.repository.UserRepository
+import com.challkathon.momento.global.infrastructure.AmazonS3Manager
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDate
@@ -36,7 +36,6 @@ class MessageService(
     }
 
 
-
     fun getMessageList(userId: Long, date: LocalDate): List<MessageResponse> {
         val messageList = messageRepository.findAllByUserIdAndReservedAtBetween(
             userId,
@@ -58,6 +57,7 @@ class MessageService(
 
 
     }
+
     fun getMessageDetail(userId: Long, messageId: Long): MessageResponse {
         val message = messageRepository.findById(messageId)
             .orElseThrow { MessageException(MessageErrorStatus._MESSAGE_NOT_FOUND) }
@@ -68,8 +68,6 @@ class MessageService(
             imageUrl = message.imageUrl
         )
     }
-
-
 
 
 }
