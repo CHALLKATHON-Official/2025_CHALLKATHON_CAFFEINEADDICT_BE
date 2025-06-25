@@ -38,7 +38,6 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testImplementation("com.h2database:h2")
 
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.12.3")
@@ -91,27 +90,4 @@ allOpen {
 
 tasks.withType<Test> {
     useJUnitPlatform()
-}
-
-// JAR 설정 - Elastic Beanstalk용
-tasks.jar {
-    enabled = false  // 일반 JAR 비활성화
-}
-
-tasks.bootJar {
-    enabled = true   // 실행 가능한 JAR 활성화
-    archiveFileName.set("application.jar")  // Elastic Beanstalk 기본 이름
-
-    // 빌드 정보 포함 (선택사항)
-    manifest {
-        attributes(
-            "Implementation-Title" to project.name,
-            "Implementation-Version" to project.version
-        )
-    }
-}
-
-// 빌드 태스크 의존성 설정
-tasks.build {
-    dependsOn(tasks.bootJar)
 }

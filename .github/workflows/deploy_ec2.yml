@@ -105,19 +105,35 @@ jobs:
           # EC2로 파일 전송
           scp -i private_key.pem -o StrictHostKeyChecking=no application-dev.yml ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/momento/application-dev.yml
 
-      # 11. 간단한 start.sh 생성 및 전송
+      # 11. 환경변수를 포함한 start.sh 생성 및 전송
       - name: Create and copy start script
         run: |
           cat > start.sh << 'EOF'
           #!/bin/bash
-          
+
           echo "Starting Momento application at $(date)"
           echo "Working directory: $(pwd)"
           echo "Files in directory:"
           ls -la
-          
-          # 애플리케이션 실행 (외부 설정 파일 사용)
-          # Spring Boot는 JAR 파일과 같은 디렉토리의 application-{profile}.yml을 자동으로 로드
+
+          # 환경변수 설정
+          export SPRING_PROFILES_ACTIVE=dev
+          export KAKAO_CLIENT_ID="${{ secrets.KAKAO_CLIENT_ID }}"
+          export KAKAO_CLIENT_SECRET="${{ secrets.KAKAO_CLIENT_SECRET }}"
+          export AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}"
+          export AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+          export OPENAI_API_KEY="${{ secrets.OPENAI_API_KEY }}"
+          export SCHEDULER_ENABLED="${{ secrets.SCHEDULER_ENABLED }}"
+
+          # 환경변수 확인 (값은 숨김)
+          echo "Environment variables set:"
+          echo "SPRING_PROFILES_ACTIVE=$SPRING_PROFILES_ACTIVE"
+          echo "KAKAO_CLIENT_ID=***${KAKAO_CLIENT_ID: -4}"
+          echo "AWS_ACCESS_KEY_ID=***${AWS_ACCESS_KEY_ID: -4}"
+          echo "OPENAI_API_KEY=***${OPENAI_API_KEY: -4}"
+          echo "SCHEDULER_ENABLED=$SCHEDULER_ENABLED"
+
+          # 애플리케이션 실행
           nohup java -jar \
             -Dspring.profiles.active=dev \
             -Xms512m \
@@ -128,16 +144,20 @@ jobs:
             -Dfile.encoding=UTF-8 \
             -Duser.timezone=Asia/Seoul \
             momento.jar > app.log 2>&1 &
-          
+
           PID=$!
           echo $PID > app.pid
           echo "Application started with PID: $PID"
-          echo "Waiting 5 seconds for application to initialize..."
-          sleep 5
-          
+          echo "Waiting 10 seconds for application to initialize..."
+          sleep 10
+
           # 프로세스가 실행 중인지 확인
           if ps -p $PID > /dev/null; then
             echo "Process is running"
+            # 로그에서 환경변수 로딩 확인
+            if grep -q "profiles: dev" app.log; then
+              echo "✅ Application loaded with dev profile"
+            fi
           else
             echo "Process failed to start. Check app.log for details"
             if [ -f app.log ]; then
@@ -147,14 +167,9 @@ jobs:
             exit 1
           fi
           EOF
-          
+
           chmod +x start.sh
-          
-          # 스크립트 내용 확인
-          echo "=== Generated start.sh ==="
-          cat start.sh
-          echo "=== End of start.sh ==="
-          
+
           # EC2로 전송
           scp -i private_key.pem -o StrictHostKeyChecking=no start.sh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ secrets.EC2_USER }}/momento/start.sh
 
