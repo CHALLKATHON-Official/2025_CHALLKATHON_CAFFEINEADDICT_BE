@@ -18,16 +18,28 @@ spring:
           use_second_level_cache: false
           use_query_cache: false
 
-  # Cache 설정 (공통 - Redis는 환경별 설정)
-  cache:
-    type: redis
+  # CORS 설정 (Spring Boot 측)
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - https://momento.vercel.app
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - "*"
+    allow-credentials: true
+
 
 # JWT 설정 (공통)
 jwt:
   secret: KhRg0qW0UsTEt4OZnoYJYVwIozf+7lTmObBdOegDe55LVDBaSAO3v99r1xJKUskop02F2hVNxP+kGV6dlIUicw==
   issuer: momento
-  access-token-expiration: 3600000    # 1시간 (기본값)
-  refresh-token-expiration: 604800000 # 7일 (기본값)
+  access-token-expiration: 31536000000  # 1년 (개발 편의를 위해 기본값도 1년으로 설정)
+  refresh-token-expiration: 63072000000 # 2년 (개발 편의를 위해 기본값도 2년으로 설정)
 # 앱 설정 (기본값)
 app:
   oauth2:
@@ -98,7 +110,7 @@ cloud:
     s3:
       bucket: deft22
       path:
-        momento: momento   # ← 여기! s3 밑에 있어야 함
+        momento: momento
     region:
       static: ap-northeast-2
     stack:
@@ -146,30 +158,3 @@ ai:
       - 민감한 주제 (정치, 종교, 돈)
       - 부정적이거나 갈등 유발 질문
       - 특정 구성원만 답할 수 있는 질문
-
-# 스케줄러 설정
-scheduler:
-  question-generation:
-    enabled: ${SCHEDULER_ENABLED}  # 운영 환경에서만 true
-    cron: "0 0 9 * * *"  # 매일 오전 9시
-    timezone: Asia/Seoul
-
-# 질문 할당 설정
-question:
-  assignment:
-    count-per-family: 1  # Family당 할당할 질문 개수
-
-# CORS 설정 (Spring Boot 측)
-cors:
-  allowed-origins:
-    - http://localhost:3000
-    - https://momento.vercel.app
-  allowed-methods:
-    - GET
-    - POST
-    - PUT
-    - DELETE
-    - OPTIONS
-  allowed-headers:
-    - "*"
-  allow-credentials: true

@@ -1,6 +1,5 @@
 package com.challkathon.momento.domain.user.entity
 
-import com.challkathon.momento.domain.character.entity.UserCharacter
 import com.challkathon.momento.domain.family.entity.Family
 import com.challkathon.momento.domain.message.entity.Message
 import com.challkathon.momento.domain.question.entity.Answer
@@ -73,7 +72,7 @@ class User(
 
     @Column(name = "is_active")
     var isActive: Boolean = true,
-    
+
     @Column(name = "refresh_token", length = 1000)
     var refreshToken: String? = null,
 
@@ -92,10 +91,7 @@ class User(
 
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
     val messages: MutableList<Message> = mutableListOf()
-
-    @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
-    val userCharacters: MutableList<UserCharacter> = mutableListOf()
-
+    
     // User.kt
     @OneToMany(mappedBy = "user", cascade = [CascadeType.ALL], orphanRemoval = true)
     val answers: MutableList<Answer> = mutableListOf()

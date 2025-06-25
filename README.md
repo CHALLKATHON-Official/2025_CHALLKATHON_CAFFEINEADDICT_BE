@@ -79,6 +79,14 @@ docker-compose up -d
 
 ## 📚 문서
 
+### 개발 가이드
+- 🚀 [API 사용 가이드](API_USAGE_GUIDE.md) - AI 질문 생성 API 완전 가이드
+- ⚡ [API 빠른 참조](API_QUICK_REFERENCE.md) - API 치트시트
+- 🤖 [AI 시스템 가이드](AI_QUESTION_SYSTEM_GUIDE.md) - AI 질문 시스템 상세
+- 🏗️ [아키텍처 문서](ARCHITECTURE.md) - 시스템 아키텍처 설명
+- 📊 [DB 스키마 - 질문 시스템](docs/DATABASE_SCHEMA_QUESTION.md) - 질문 관련 테이블 구조
+
+### 운영 가이드
 - 🚀 [배포 가이드](DEPLOYMENT.md) - Docker 기반 프로덕션 배포
 - 🌱 [Spring Profile 가이드](SPRING_PROFILES_GUIDE.md) - 환경별 설정 관리
 - 🔐 [GitHub Secrets 설정](GITHUB_SECRETS.md) - CI/CD 환경변수
