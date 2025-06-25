@@ -1,6 +1,5 @@
 package com.challkathon.momento.domain.question.controller
 
-import com.challkathon.momento.auth.security.UserPrincipal
 import com.challkathon.momento.domain.question.dto.response.FamilyQuestionResponse
 import com.challkathon.momento.domain.question.service.FamilyQuestionService
 import com.challkathon.momento.global.common.BaseResponse
@@ -9,6 +8,7 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
+import com.challkathon.momento.auth.security.UserPrincipal
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
@@ -19,7 +19,7 @@ import java.time.LocalDate
 class QuestionController(
     private val familyQuestionService: FamilyQuestionService
 ) {
-    
+
     @GetMapping("/today")
     @Operation(
         summary = "오늘의 가족 질문 조회",
@@ -28,10 +28,10 @@ class QuestionController(
     fun getTodayFamilyQuestions(
         @AuthenticationPrincipal userPrincipal: UserPrincipal
     ): ResponseEntity<BaseResponse<List<FamilyQuestionResponse>>> {
-        val questions = familyQuestionService.getTodayQuestions(userPrincipal.username)
+        val questions = familyQuestionService.getTodayQuestions(userPrincipal.displayName)
         return ResponseEntity.ok(BaseResponse.onSuccess(questions))
     }
-    
+
     @GetMapping("/history")
     @Operation(
         summary = "가족 질문 히스토리 조회",
@@ -45,13 +45,13 @@ class QuestionController(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) endDate: LocalDate
     ): ResponseEntity<BaseResponse<List<FamilyQuestionResponse>>> {
         val questions = familyQuestionService.getQuestionHistory(
-            userId = userPrincipal.username,
+            userId = userPrincipal.displayName,
             startDate = startDate,
             endDate = endDate
         )
         return ResponseEntity.ok(BaseResponse.onSuccess(questions))
     }
-    
+
     @PostMapping("/{questionId}/regenerate")
     @Operation(
         summary = "질문 재생성",
@@ -63,7 +63,7 @@ class QuestionController(
         @PathVariable questionId: Long
     ): ResponseEntity<BaseResponse<FamilyQuestionResponse>> {
         val newQuestion = familyQuestionService.regenerateQuestion(
-            userId = userPrincipal.username,
+            userId = userPrincipal.displayName,
             familyQuestionId = questionId
         )
         return ResponseEntity.ok(BaseResponse.onSuccess(newQuestion))

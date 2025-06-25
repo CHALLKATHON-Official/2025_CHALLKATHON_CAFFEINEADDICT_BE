@@ -6,7 +6,7 @@ import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
 import com.aallam.openai.api.model.ModelId
 import com.aallam.openai.client.OpenAI
-import com.challkathon.momento.auth.exception.OAuth2AuthenticationException
+import com.challkathon.momento.auth.exception.AuthException
 import com.challkathon.momento.auth.exception.code.AuthErrorStatus
 import com.challkathon.momento.domain.question.config.OpenAIConfig
 import com.challkathon.momento.domain.question.config.PromptConfig
@@ -33,7 +33,7 @@ class AssistantService(
             OpenAI(token = openAIConfig.apiKey)
         } catch (e: Exception) {
             log.warn { "Failed to initialize OpenAI client: ${e.message}" }
-            throw OAuth2AuthenticationException(AuthErrorStatus._AI_SERVICE_ERROR)
+            throw AuthException(AuthErrorStatus._AI_SERVICE_ERROR)
         }
     }
 
@@ -65,13 +65,13 @@ class AssistantService(
             
             val completion = openAI.chatCompletion(chatRequest)
             val content = completion.choices.firstOrNull()?.message?.content
-                ?: throw OAuth2AuthenticationException(AuthErrorStatus._AI_SERVICE_ERROR)
+                ?: throw AuthException(AuthErrorStatus._AI_SERVICE_ERROR)
             
             return parseQuestions(content)
             
         } catch (e: Exception) {
             log.error(e) { "Failed to generate questions for family ${context.familyId}" }
-            throw OAuth2AuthenticationException(AuthErrorStatus._AI_SERVICE_ERROR)
+            throw AuthException(AuthErrorStatus._AI_SERVICE_ERROR)
         }
     }
 
@@ -120,7 +120,7 @@ class AssistantService(
             
         } catch (e: Exception) {
             log.error(e) { "Failed to generate questions via streaming for family ${context.familyId}" }
-            throw OAuth2AuthenticationException(AuthErrorStatus._AI_SERVICE_ERROR)
+            throw AuthException(AuthErrorStatus._AI_SERVICE_ERROR)
         }
     }
 

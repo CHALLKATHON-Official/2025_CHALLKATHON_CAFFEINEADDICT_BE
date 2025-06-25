@@ -1,7 +1,3 @@
-# 로컬 개발 환경 설정
-# IntelliJ Run Configuration에서 Environment Variables 설정 필요:
-# DB_USERNAME, DB_PASSWORD, JWT_SECRET, KAKAO_CLIENT_ID, KAKAO_CLIENT_SECRET 등
-
 spring:
   # 로컬 개발용 데이터베이스 설정
   datasource:
@@ -25,7 +21,7 @@ spring:
   # JPA 설정 (로컬 개발용)
   jpa:
     hibernate:
-      ddl-auto: update  # 스키마 변경 없음 (기존 DB 구조 유지)
+      ddl-auto: create  # 스키마 변경 없음 (기존 DB 구조 유지)
     show-sql: true
     properties:
       hibernate:
@@ -36,33 +32,6 @@ spring:
           lob:
             non_contextual_creation: true
 
-  # OAuth2 설정 (로컬 환경)
-  security:
-    oauth2:
-      client:
-        registration:
-          kakao:
-            client-id: ${KAKAO_CLIENT_ID}  # IntelliJ에서 설정
-            client-secret: ${KAKAO_CLIENT_SECRET}  # IntelliJ에서 설정
-            client-name: kakao
-            authorization-grant-type: authorization_code
-            redirect-uri: http://localhost:8080/login/oauth2/code/kakao
-            client-authentication-method: client_secret_post
-            scope:
-              - profile_nickname
-              - account_email
-        provider:
-          kakao:
-            authorization-uri: https://kauth.kakao.com/oauth/authorize
-            token-uri: https://kauth.kakao.com/oauth/token
-            user-info-uri: https://kapi.kakao.com/v2/user/me
-            user-name-attribute: id
-
-# JWT 설정 (로컬 개발용)
-jwt:
-  access-token-expiration: 7200000    # 2시간 (개발 편의를 위해 조금 더 길게)
-  refresh-token-expiration: 604800000 # 7일
-
 openai:
   api-key: ${OPENAI_API_KEY}
   model: gpt-4o-mini
@@ -72,28 +41,49 @@ openai:
 # 서버 설정 (로컬용)
 server:
   port: 8080
-  servlet:
-    session:
-      timeout: 30m
-      cookie:
-        same-site: none
-        secure: false
+  error:
+    include-stacktrace: always
+    include-message: always
+    include-binding-errors: always
 
 # 로깅 설정 (로컬 개발용 - 상세 로깅)
 logging:
   level:
+    # 프로젝트 전체 로깅
     com.challkathon.momento: DEBUG
+    
+    # 인증 관련 상세 로깅
+    com.challkathon.momento.auth: TRACE
+    com.challkathon.momento.auth.filter: TRACE
+    com.challkathon.momento.auth.service: DEBUG
+    com.challkathon.momento.auth.handler: DEBUG
+    
+    # Spring Security 상세 로깅
     org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
+    org.springframework.security.oauth2: TRACE
+    org.springframework.security.oauth2.client: TRACE
+    org.springframework.security.web: DEBUG
+    org.springframework.security.web.authentication: DEBUG
     org.springframework.security.web.FilterChainProxy: DEBUG
     org.springframework.security.web.access.intercept.FilterSecurityInterceptor: DEBUG
+    
+    # JWT 처리 로깅
+    io.jsonwebtoken: DEBUG
+    
+    # CORS 관련 로깅
+    org.springframework.web.cors: DEBUG
+    
+    # MySQL/JPA 로깅
+    org.springframework.orm.jpa: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
     org.springframework.transaction: DEBUG
-    org.springframework.orm.jpa: DEBUG
+    
+    # Root 레벨
+    root: INFO
+
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
 # Swagger 설정 (로컬용 - 모든 기능 활성화)
 springdoc:
