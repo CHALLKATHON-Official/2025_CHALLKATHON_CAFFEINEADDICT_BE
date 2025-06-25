@@ -30,13 +30,18 @@ class JwtAuthenticationFilter(
     ) {
         try {
             val jwt = getJwtFromRequest(request)
+            logger.debug { "JWT from request: ${if (jwt != null) "Present" else "Not found"}" }
             
             if (StringUtils.hasText(jwt) && jwtService.validateToken(jwt!!)) {
                 val tokenType = jwtService.getTokenType(jwt)
+                logger.debug { "Token type: $tokenType" }
                 
                 if (tokenType == TokenType.ACCESS) {
                     val userId = jwtService.extractUserId(jwt)
+                    logger.debug { "Extracted userId: $userId" }
+                    
                     val user = userRepository.findById(userId).orElse(null)
+                    logger.debug { "User found: ${user != null}, User active: ${user?.isActive}" }
                     
                     if (user != null && user.isActive) {
                         val userPrincipal = UserPrincipal.create(user)
@@ -45,10 +50,15 @@ class JwtAuthenticationFilter(
                         )
                         authentication.details = WebAuthenticationDetailsSource().buildDetails(request)
                         SecurityContextHolder.getContext().authentication = authentication
+                        logger.debug { "Successfully set authentication for user: ${user.email}" }
+                    } else {
+                        logger.warn { "User not found or inactive for userId: $userId" }
                     }
                 } else {
                     logger.debug { "Invalid token type for authentication: $tokenType" }
                 }
+            } else {
+                logger.debug { "JWT validation failed or no JWT found" }
             }
         } catch (ex: Exception) {
             logger.error { "Could not set user authentication in security context: ${ex.message}" }
