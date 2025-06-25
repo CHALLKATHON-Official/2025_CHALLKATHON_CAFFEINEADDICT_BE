@@ -68,4 +68,15 @@ class FamilyQuestionRepositoryImpl(
             )
             .fetch()
     }
+
+    override fun findByFamilyIdOrderByAssignedAtDesc(familyId: Long): List<FamilyQuestion> {
+        return queryFactory
+            .selectFrom(familyQuestion)
+            .join(familyQuestion.question, question).fetchJoin()
+            .leftJoin(familyQuestion.answers, answer).fetchJoin()
+            .join(familyQuestion.family).fetchJoin()
+            .where(familyQuestion.family.id.eq(familyId))
+            .orderBy(familyQuestion.assignedAt.desc())
+            .fetch()
+    }
 }

@@ -8,9 +8,7 @@ import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
@@ -29,14 +27,11 @@ class QuestionGenerationManager(
     @Autowired(required = false)
     private var assistantService: AssistantService? = null
     
-    @Autowired(required = false)
-    private var redisTemplate: RedisTemplate<String, Any>? = null
     
     /**
-     * 계층적 질문 생성 전략
-     * 1. 캐시 확인
-     * 2. 사전 생성 풀에서 선택
-     * 3. AI 생성 (필요시만)
+     * 질문 생성 전략 (캐시 제거)
+     * 1. 사전 생성 풀에서 선택
+     * 2. AI 생성 (필요시만)
      */
     suspend fun getQuestionsForFamily(
         family: Family,
@@ -44,25 +39,16 @@ class QuestionGenerationManager(
     ): List<Question> {
         val context = contextAnalyzer.analyzeFamily(family)
         
-        // Level 1: 캐시된 질문
-        if (!forceNew) {
-            getCachedQuestions(family.id, context.hashCode())?.let {
-                log.info { "Cache hit for family ${family.id}" }
-                return it
-            }
-        }
-        
-        // Level 2: 사전 생성 풀
+        // Level 1: 사전 생성 풀
         val category = context.preferredCategory ?: QuestionCategory.GENERAL
         val poolQuestions = getQuestionsFromPool(category, family)
         
-        if (poolQuestions.size >= questionsPerFamily) {
+        if (poolQuestions.size >= questionsPerFamily && !forceNew) {
             log.info { "Pool hit for family ${family.id}" }
-            cacheQuestions(family.id, context.hashCode(), poolQuestions.take(questionsPerFamily))
             return poolQuestions.take(questionsPerFamily)
         }
         
-        // Level 3: AI 생성 (AssistantService가 있는 경우만)
+        // Level 2: AI 생성 (AssistantService가 있는 경우만)
         val generatedQuestions = assistantService?.let { service ->
             log.info { "Generating new questions for family ${family.id}" }
             service.generateQuestions(context)
@@ -86,26 +72,7 @@ class QuestionGenerationManager(
         // 생성된 질문 저장
         val savedQuestions = questionRepository.saveAll(savedQuestionList)
         
-        // 캐시에 저장
-        cacheQuestions(family.id, context.hashCode(), savedQuestions)
-        
         return savedQuestions
-    }
-    
-    private fun getCachedQuestions(familyId: Long, contextHash: Int): List<Question>? {
-        return redisTemplate?.let { redis ->
-            val key = "question:family:$familyId:$contextHash"
-            
-            @Suppress("UNCHECKED_CAST")
-            redis.opsForValue().get(key) as? List<Question>
-        }
-    }
-    
-    private fun cacheQuestions(familyId: Long, contextHash: Int, questions: List<Question>) {
-        redisTemplate?.let { redis ->
-            val key = "question:family:$familyId:$contextHash"
-            redis.opsForValue().set(key, questions, Duration.ofHours(2))
-        }
     }
     
     private fun getQuestionsFromPool(

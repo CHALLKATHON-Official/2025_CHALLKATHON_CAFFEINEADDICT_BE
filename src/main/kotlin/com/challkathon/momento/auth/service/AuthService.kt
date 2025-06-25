@@ -1,5 +1,7 @@
 package com.challkathon.momento.auth.service
 
+import com.challkathon.momento.auth.dto.request.SelectFamilyRoleRequest
+import com.challkathon.momento.auth.dto.response.UserInfo
 import com.challkathon.momento.auth.entity.RefreshToken
 import com.challkathon.momento.auth.enums.TokenType
 import com.challkathon.momento.auth.exception.AuthException
@@ -7,6 +9,7 @@ import com.challkathon.momento.auth.exception.code.AuthErrorStatus
 import com.challkathon.momento.auth.repository.RefreshTokenRepository
 import com.challkathon.momento.auth.util.CookieUtil
 import com.challkathon.momento.domain.user.entity.User
+import com.challkathon.momento.domain.user.entity.enums.FamilyRole
 import com.challkathon.momento.domain.user.repository.UserRepository
 import jakarta.servlet.http.HttpServletRequest
 import mu.KotlinLogging
@@ -87,5 +90,52 @@ class AuthService(
     fun getCurrentUser(userId: Long): User {
         return userRepository.findById(userId)
             .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
+    }
+
+    @Transactional(readOnly = true)
+    fun getCurrentUserInfo(userId: Long): UserInfo {
+        val user = userRepository.findById(userId)
+            .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
+        
+        return UserInfo(
+            id = user.id,
+            email = user.email,
+            username = user.username,
+            profileImageUrl = user.profileImageUrl,
+            familyRole = user.familyRole?.name,
+            familyRoleSelected = user.familyRoleSelected,
+            familyId = user.family?.id
+        )
+    }
+
+    /**
+     * 가족 역할 선택
+     */
+    fun selectFamilyRole(userId: Long, request: SelectFamilyRoleRequest): UserInfo {
+        val user = userRepository.findById(userId)
+            .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
+
+        // 이미 가족 역할을 선택했는지 확인
+        if (user.familyRoleSelected) {
+            throw AuthException(AuthErrorStatus._ALREADY_SELECT_FAMILY_ROLE)
+        }
+
+        // 가족 역할 설정
+        user.familyRole = request.familyRole
+        user.familyRoleSelected = true
+
+        val savedUser = userRepository.save(user)
+
+        logger.info { "Family role selected for user: ${user.email}, role: ${request.familyRole}" }
+
+        return UserInfo(
+            id = savedUser.id,
+            email = savedUser.email,
+            username = savedUser.username,
+            profileImageUrl = savedUser.profileImageUrl,
+            familyRole = savedUser.familyRole?.name,
+            familyRoleSelected = savedUser.familyRoleSelected,
+            familyId = savedUser.family?.id
+        )
     }
 }

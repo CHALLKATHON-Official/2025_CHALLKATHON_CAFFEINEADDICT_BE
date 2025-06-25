@@ -47,8 +47,9 @@ class SecurityConfig(
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers("/", "/error").permitAll()
-                    .requestMatchers("/auth/**", "/oauth2/**", "/login/**").permitAll()
-                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                    .requestMatchers("/api/v1/auth/**", "/oauth2/**", "/login/**").permitAll()
+                    .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/swagger-ui/index.html", "/v3/api-docs/**")
+                    .permitAll()
                     .requestMatchers("/actuator/health").permitAll()
                     .anyRequest().authenticated()
             }
@@ -62,10 +63,10 @@ class SecurityConfig(
                 allowedOriginPatterns = allowedOrigins
                 allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 allowedHeaders = listOf(
-                    "Authorization", 
-                    "Content-Type", 
-                    "Accept", 
-                    "Origin", 
+                    "Authorization",
+                    "Content-Type",
+                    "Accept",
+                    "Origin",
                     "X-Requested-With",
                     "Access-Control-Request-Method",
                     "Access-Control-Request-Headers"
