@@ -19,7 +19,7 @@ data class BaseResponse<T>(
     val message: String,
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    @Schema(description = "응답 데이터", example = "사용 가능한 이메일입니다.")
+    @Schema(description = "응답 데이터")
     val result: T?
 ) {
     companion object {
