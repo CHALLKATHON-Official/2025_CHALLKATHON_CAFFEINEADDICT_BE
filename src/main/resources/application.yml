@@ -26,17 +26,12 @@ jwt:
 # 앱 설정 (기본값)
 app:
   oauth2:
-    authorized-redirect-uris:
-      - http://localhost:3000
-      - https://momento.vercel.app
+    authorized-redirect-uris: http://localhost:3000,https://momento-neon.vercel.app,https://dev.caffeineoverdose.shop
   cors:
-    allowed-origins:
-      - http://localhost:3000
-      - https://localhost:3000
-      - http://127.0.0.1:3000
-      - https://momento.vercel.app
+    allowed-origins: http://localhost:3000,https://localhost:3000,http://127.0.0.1:3000,https://momento-neon.vercel.app,https://dev.caffeineoverdose.shop
   cookie:
     refresh-token:
+      domain: dev.caffeineoverdose.shop
       name: refreshToken
       max-age: 604800  # 7일
       path: /          # 모든 경로에서 접근 가능
