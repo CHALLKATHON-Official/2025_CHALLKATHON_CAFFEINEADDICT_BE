@@ -42,7 +42,8 @@ class ChatGPTQuestionService(
     private val answerHistoryService: AnswerHistoryService,
     private val questionRepository: QuestionRepository,
     private val userQuestionRepository: UserQuestionRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val questionPoolService: QuestionPoolService
 ) {
     
     private val logger = KotlinLogging.logger {}
@@ -72,6 +73,17 @@ class ChatGPTQuestionService(
                 throw IllegalStateException("하루 질문 생성 한도를 초과했습니다. (최대 5개)")
             }
             
+            // 1. 먼저 캐시에서 질문 가져오기 시도 (빠른 응답)
+            val startTime = System.currentTimeMillis()
+            val cachedQuestion = questionPoolService.getOrGenerateQuestion(user.id)
+            val cacheTime = System.currentTimeMillis() - startTime
+            
+            if (cacheTime < 100) {
+                logger.info { "캐시에서 질문 반환 (${cacheTime}ms)" }
+                return saveQuestionAndReturn(cachedQuestion, user, isFromCache = true)
+            }
+            
+            // 2. 캐시에 없으면 AI 생성 (기존 로직)
             val personalContext = answerHistoryService.generatePersonalizedContext(user)
             val userPrompt = if (personalContext.isNotEmpty()) {
                 personalContext
@@ -222,5 +234,37 @@ class ChatGPTQuestionService(
         )
         
         return questionRepository.save(question)
+    }
+    
+    @Transactional
+    private fun saveQuestionAndReturn(
+        questionContent: String,
+        user: User,
+        isFromCache: Boolean = false
+    ): GeneratedQuestionResponse {
+        // 카테고리 분류
+        val category = classifyQuestionCategory(questionContent)
+        
+        // Question 엔티티 생성 및 저장
+        val question = Question(
+            content = questionContent,
+            category = category,
+            isAIGenerated = !isFromCache,
+            generatedDate = LocalDate.now()
+        )
+        val savedQuestion = questionRepository.save(question)
+        
+        // UserQuestion 매핑 생성 및 저장
+        val userQuestion = UserQuestion(
+            user = user,
+            question = savedQuestion,
+            aiModel = if (isFromCache) "cached" else model,
+            isAnswered = false
+        )
+        userQuestionRepository.save(userQuestion)
+        
+        logger.info { "사용자 ${user.id}를 위한 질문 저장 완료: ${savedQuestion.id} (캐시: $isFromCache)" }
+        
+        return GeneratedQuestionResponse.from(savedQuestion)
     }
 }
