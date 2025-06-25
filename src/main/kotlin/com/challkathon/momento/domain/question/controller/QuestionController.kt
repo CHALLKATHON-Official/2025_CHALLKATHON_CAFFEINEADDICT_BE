@@ -28,6 +28,7 @@ class QuestionController(
         summary = "맞춤형 AI 질문 생성",
         description = """
             사용자의 이전 답변 이력을 기반으로 맞춤형 질문을 생성하고 저장합니다.
+            - **가족에 소속된 사용자만 질문 생성 가능**
             - 생성된 질문은 데이터베이스에 저장됩니다
             - 24시간 내 최대 5개까지 생성 가능합니다
             - 중복 질문은 자동으로 필터링됩니다
@@ -59,7 +60,7 @@ class QuestionController(
         ),
         ApiResponse(
             responseCode = "400",
-            description = "잘못된 요청 (일일 생성 한도 초과)"
+            description = "잘못된 요청 (일일 생성 한도 초과 또는 가족 미설정)"
         ),
         ApiResponse(
             responseCode = "401",

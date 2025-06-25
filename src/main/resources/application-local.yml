@@ -16,7 +16,7 @@ spring:
   # JPA 설정 (로컬 개발용)
   jpa:
     hibernate:
-      ddl-auto: create  # 스키마 변경 없음 (기존 DB 구조 유지)
+      ddl-auto: create
     show-sql: true
     properties:
       hibernate:

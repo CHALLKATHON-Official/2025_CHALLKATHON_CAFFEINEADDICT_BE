@@ -38,8 +38,8 @@ spring:
 jwt:
   secret: KhRg0qW0UsTEt4OZnoYJYVwIozf+7lTmObBdOegDe55LVDBaSAO3v99r1xJKUskop02F2hVNxP+kGV6dlIUicw==
   issuer: momento
-  access-token-expiration: 3600000    # 1시간 (기본값)
-  refresh-token-expiration: 604800000 # 7일 (기본값)
+  access-token-expiration: 31536000000  # 1년 (개발 편의를 위해 기본값도 1년으로 설정)
+  refresh-token-expiration: 63072000000 # 2년 (개발 편의를 위해 기본값도 2년으로 설정)
 # 앱 설정 (기본값)
 app:
   oauth2:
@@ -158,6 +158,3 @@ ai:
       - 민감한 주제 (정치, 종교, 돈)
       - 부정적이거나 갈등 유발 질문
       - 특정 구성원만 답할 수 있는 질문
-
-# 스케줄러 설정 제거됨 - 실시간 질문 생성으로 변경
-
