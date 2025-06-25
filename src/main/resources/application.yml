@@ -18,6 +18,21 @@ spring:
           use_second_level_cache: false
           use_query_cache: false
 
+  # CORS 설정 (Spring Boot 측)
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - https://momento.vercel.app
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - "*"
+    allow-credentials: true
+
 
 # JWT 설정 (공통)
 jwt:
@@ -95,7 +110,7 @@ cloud:
     s3:
       bucket: deft22
       path:
-        momento: momento   # ← 여기! s3 밑에 있어야 함
+        momento: momento
     region:
       static: ap-northeast-2
     stack:
@@ -146,17 +161,3 @@ ai:
 
 # 스케줄러 설정 제거됨 - 실시간 질문 생성으로 변경
 
-# CORS 설정 (Spring Boot 측)
-cors:
-  allowed-origins:
-    - http://localhost:3000
-    - https://momento.vercel.app
-  allowed-methods:
-    - GET
-    - POST
-    - PUT
-    - DELETE
-    - OPTIONS
-  allowed-headers:
-    - "*"
-  allow-credentials: true

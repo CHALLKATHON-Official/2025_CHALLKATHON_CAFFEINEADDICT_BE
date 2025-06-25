@@ -47,6 +47,19 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+  # Redis 설정 (로컬 개발용)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: # 로컬 Redis는 비밀번호 없음
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
 # 앱 설정 (로컬 개발용)
 app:
   oauth2:
@@ -137,26 +150,6 @@ management:
     env:
       show-values: always
 
-
-  # 개발 편의 설정
-  devtools:
-    restart:
-      enabled: true
-    livereload:
-      enabled: true
-
-  # Redis 설정 (로컬 개발용)
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      password: # 로컬 Redis는 비밀번호 없음
-      timeout: 2000ms
-      lettuce:
-        pool:
-          max-active: 8
-          max-idle: 8
-          min-idle: 0
 
 # ⚠️ 주의: 개발 환경 전용 JWT 설정
 # 운영 환경에서는 절대 사용하지 마세요!
