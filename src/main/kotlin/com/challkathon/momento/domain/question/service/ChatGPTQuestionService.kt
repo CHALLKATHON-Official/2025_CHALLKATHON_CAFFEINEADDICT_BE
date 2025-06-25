@@ -13,6 +13,9 @@ import com.challkathon.momento.domain.question.entity.mapping.UserQuestion
 import com.challkathon.momento.domain.question.repository.QuestionRepository
 import com.challkathon.momento.domain.question.repository.UserQuestionRepository
 import com.challkathon.momento.domain.user.entity.User
+import com.challkathon.momento.domain.user.repository.UserRepository
+import com.challkathon.momento.domain.user.exception.UserException
+import com.challkathon.momento.domain.user.exception.code.UserErrorStatus
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
@@ -38,11 +41,20 @@ class ChatGPTQuestionService(
     
     private val answerHistoryService: AnswerHistoryService,
     private val questionRepository: QuestionRepository,
-    private val userQuestionRepository: UserQuestionRepository
+    private val userQuestionRepository: UserQuestionRepository,
+    private val userRepository: UserRepository
 ) {
     
     private val logger = KotlinLogging.logger {}
     private val openAI = OpenAI(apiKey)
+    
+    @Transactional
+    fun generatePersonalizedQuestion(userId: Long): GeneratedQuestionResponse {
+        val user = userRepository.findById(userId)
+            .orElseThrow { UserException(UserErrorStatus.USER_NOT_FOUND) }
+        
+        return generatePersonalizedQuestion(user)
+    }
     
     @Transactional
     fun generatePersonalizedQuestion(user: User): GeneratedQuestionResponse {

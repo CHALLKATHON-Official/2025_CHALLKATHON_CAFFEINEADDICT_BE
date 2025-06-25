@@ -2,9 +2,6 @@ package com.challkathon.momento.domain.question.controller
 
 import com.challkathon.momento.domain.question.dto.response.GeneratedQuestionResponse
 import com.challkathon.momento.domain.question.service.ChatGPTQuestionService
-import com.challkathon.momento.domain.user.repository.UserRepository
-import com.challkathon.momento.domain.user.exception.UserException
-import com.challkathon.momento.domain.user.exception.code.UserErrorStatus
 import com.challkathon.momento.global.common.BaseResponse
 import com.challkathon.momento.auth.security.UserPrincipal
 import io.swagger.v3.oas.annotations.Operation
@@ -21,8 +18,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/v1/questions")
 @Tag(name = "Question", description = "AI 질문 생성 API")
 class QuestionController(
-    private val chatGPTQuestionService: ChatGPTQuestionService,
-    private val userRepository: UserRepository
+    private val chatGPTQuestionService: ChatGPTQuestionService
 ) {
 
     @PostMapping("/generate")
@@ -77,10 +73,7 @@ class QuestionController(
     fun generatePersonalizedQuestion(
         @AuthenticationPrincipal userPrincipal: UserPrincipal
     ): ResponseEntity<BaseResponse<GeneratedQuestionResponse>> {
-        val user = userRepository.findById(userPrincipal.displayName.toLong())
-            .orElseThrow { UserException(UserErrorStatus.USER_NOT_FOUND) }
-        
-        val generatedQuestion = chatGPTQuestionService.generatePersonalizedQuestion(user)
+        val generatedQuestion = chatGPTQuestionService.generatePersonalizedQuestion(userPrincipal.id)
         return ResponseEntity.ok(BaseResponse.onSuccess(generatedQuestion))
     }
 }
