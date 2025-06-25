@@ -18,9 +18,6 @@ spring:
           use_second_level_cache: false
           use_query_cache: false
 
-  # Cache 설정 (공통 - Redis는 환경별 설정)
-  cache:
-    type: redis
 
 # JWT 설정 (공통)
 jwt:
@@ -147,17 +144,7 @@ ai:
       - 부정적이거나 갈등 유발 질문
       - 특정 구성원만 답할 수 있는 질문
 
-# 스케줄러 설정
-scheduler:
-  question-generation:
-    enabled: ${SCHEDULER_ENABLED}  # 운영 환경에서만 true
-    cron: "0 0 9 * * *"  # 매일 오전 9시
-    timezone: Asia/Seoul
-
-# 질문 할당 설정
-question:
-  assignment:
-    count-per-family: 1  # Family당 할당할 질문 개수
+# 스케줄러 설정 제거됨 - 실시간 질문 생성으로 변경
 
 # CORS 설정 (Spring Boot 측)
 cors:
