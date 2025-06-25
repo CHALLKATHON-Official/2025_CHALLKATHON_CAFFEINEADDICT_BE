@@ -3,7 +3,10 @@ package com.challkathon.momento.domain.todo.service
 import com.challkathon.momento.domain.family.entity.Family
 import com.challkathon.momento.domain.family.repository.FamilyRepository
 import com.challkathon.momento.domain.todo.TodoList
+import com.challkathon.momento.domain.todo.dto.response.FamilyTodoResponse
 import com.challkathon.momento.domain.todo.dto.response.RecentTodoResponse
+import com.challkathon.momento.domain.todo.exception.TodoException
+import com.challkathon.momento.domain.todo.exception.code.TodoErrorStatus
 import com.challkathon.momento.domain.todo.mapping.FamilyTodoList
 import com.challkathon.momento.domain.todo.repository.FamilyTodoListRepository
 import com.challkathon.momento.domain.todo.repository.TodoListRepository
@@ -50,7 +53,7 @@ class FamilyTodoService(
     /**
      * 가족용 버킷리스트 생성 (Redis 캐싱 + 3-tier 전략)
      */
-    fun generateFamilyBucketList(userId: Long): List<FamilyTodoList> {
+    fun generateFamilyBucketList(userId: Long): List<FamilyTodoResponse> {
         val user = userRepository.findById(userId)
             .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
         
@@ -63,19 +66,19 @@ class FamilyTodoService(
         val poolTodos = getTodosFromPool(TODO_COUNT_PER_GENERATION)
         if (poolTodos.isNotEmpty()) {
             logger.info { "풀에서 버킷리스트 조회 성공: ${poolTodos.size}개" }
-            return createFamilyTodosFromPool(family, poolTodos)
+            return createFamilyTodosFromPool(family, poolTodos).map { mapToFamilyTodoResponse(it) }
         }
         
         // 2차: AI 실시간 생성
         logger.info { "AI를 통한 실시간 버킷리스트 생성" }
-        return generateAITodos(family)
+        return generateAITodos(family).map { mapToFamilyTodoResponse(it) }
     }
     
     /**
      * 가족의 Todo 목록 조회
      */
     @Transactional(readOnly = true)
-    fun getFamilyTodos(userId: Long): List<FamilyTodoList> {
+    fun getFamilyTodos(userId: Long): List<FamilyTodoResponse> {
         val user = userRepository.findById(userId)
             .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
         
@@ -83,20 +86,21 @@ class FamilyTodoService(
             ?: throw FamilyException(FamilyErrorStatus.FAMILY_NOT_JOINED)
         
         return familyTodoListRepository.findByFamilyOrderByAssignedAtDesc(family)
+            .map { mapToFamilyTodoResponse(it) }
     }
 
     /**
      * 상태별 가족 Todo 목록 조회
      */
     @Transactional(readOnly = true)
-    fun getFamilyTodosByStatus(userId: Long, status: String?): List<FamilyTodoList> {
+    fun getFamilyTodosByStatus(userId: Long, status: String?): List<FamilyTodoResponse> {
         val user = userRepository.findById(userId)
             .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
         
         val family = user.family
             ?: throw FamilyException(FamilyErrorStatus.FAMILY_NOT_JOINED)
         
-        return when (status?.lowercase()) {
+        val familyTodos = when (status?.lowercase()) {
             "completed" -> familyTodoListRepository.findByFamilyAndStatusOrderByAssignedAtDesc(
                 family, com.challkathon.momento.domain.todo.entity.enums.FamilyTodoStatus.COMPLETED
             )
@@ -105,6 +109,8 @@ class FamilyTodoService(
             )
             else -> familyTodoListRepository.findByFamilyOrderByAssignedAtDesc(family)
         }
+        
+        return familyTodos.map { mapToFamilyTodoResponse(it) }
     }
     
     /**
@@ -115,41 +121,36 @@ class FamilyTodoService(
         todoId: Long, 
         proofImage: MultipartFile, 
         memo: String
-    ): FamilyTodoList {
+    ): FamilyTodoResponse {
         val user = userRepository.findById(userId)
             .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
         
         val familyTodo = familyTodoListRepository.findById(todoId)
-            .orElseThrow { throw RuntimeException("Todo를 찾을 수 없습니다") }
+            .orElseThrow { TodoException(TodoErrorStatus.TODO_NOT_FOUND) }
         
         // 가족 소속 확인
         if (user.family?.id != familyTodo.family.id) {
-            throw FamilyException(FamilyErrorStatus.FAMILY_ACCESS_DENIED)
+            throw TodoException(TodoErrorStatus.TODO_ACCESS_DENIED)
         }
         
         // 메모 필수 검증
         if (memo.isBlank()) {
-            throw RuntimeException("완료 메모는 필수입니다.")
+            throw TodoException(TodoErrorStatus.TODO_COMPLETION_MEMO_REQUIRED)
         }
         
         // 인증샷 업로드 (필수)
         validateProofImage(proofImage)
-        val imageUrl = try {
-            logger.info { "인증샷 업로드 시작: ${proofImage.originalFilename}, 크기: ${proofImage.size}bytes" }
-            val uploadedUrl = amazonS3Manager.uploadFile(proofImage)
-            logger.info { "인증샷 업로드 완료: $uploadedUrl" }
-            uploadedUrl
-        } catch (e: Exception) {
-            logger.error { "인증샷 업로드 실패: ${e.message}" }
-            throw RuntimeException("인증샷 업로드에 실패했습니다. 다시 시도해주세요.", e)
-        }
+        logger.info { "인증샷 업로드 시작: ${proofImage.originalFilename}, 크기: ${proofImage.size}bytes" }
+        val imageUrl = amazonS3Manager.uploadFile(proofImage)
+        logger.info { "인증샷 업로드 완료: $imageUrl" }
         
         // Todo 완료 처리
         familyTodo.complete()
         familyTodo.memo = memo
         familyTodo.imageUrl = imageUrl
         
-        return familyTodoListRepository.save(familyTodo)
+        val savedTodo = familyTodoListRepository.save(familyTodo)
+        return mapToFamilyTodoResponse(savedTodo)
     }
     
     // 생성 제한 및 캐시 관련 메서드 제거됨 - 무제한 생성 허용
@@ -238,27 +239,46 @@ class FamilyTodoService(
     private fun validateProofImage(image: MultipartFile) {
         // 파일 크기 검증 (50MB)
         if (image.size > MAX_FILE_SIZE) {
-            throw RuntimeException("파일 크기가 너무 큽니다. 최대 ${MAX_FILE_SIZE / 1024 / 1024}MB까지 업로드 가능합니다.")
+            throw TodoException(TodoErrorStatus.TODO_IMAGE_SIZE_EXCEEDED)
         }
         
         // 파일 타입 검증
         val contentType = image.contentType
         if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType.lowercase())) {
-            throw RuntimeException("지원하지 않는 파일 형식입니다. 이미지 파일(JPG, PNG, GIF, WEBP)만 업로드 가능합니다.")
+            throw TodoException(TodoErrorStatus.TODO_IMAGE_TYPE_NOT_SUPPORTED)
         }
         
         // 파일명 검증
         val filename = image.originalFilename
         if (filename.isNullOrBlank()) {
-            throw RuntimeException("파일명이 올바르지 않습니다.")
+            throw TodoException(TodoErrorStatus.TODO_IMAGE_FILENAME_INVALID)
         }
         
         // 빈 파일 검증
         if (image.isEmpty) {
-            throw RuntimeException("빈 파일은 업로드할 수 없습니다.")
+            throw TodoException(TodoErrorStatus.TODO_IMAGE_EMPTY)
         }
         
         logger.debug { "파일 유효성 검증 완료: $filename (${image.size}bytes, $contentType)" }
+    }
+
+    /**
+     * 개별 Todo 조회
+     */
+    @Transactional(readOnly = true)
+    fun getFamilyTodo(userId: Long, todoId: Long): FamilyTodoResponse {
+        val user = userRepository.findById(userId)
+            .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
+
+        val familyTodo = familyTodoListRepository.findById(todoId)
+            .orElseThrow { TodoException(TodoErrorStatus.TODO_NOT_FOUND) }
+
+        // 가족 소속 확인
+        if (user.family?.id != familyTodo.family.id) {
+            throw TodoException(TodoErrorStatus.TODO_ACCESS_DENIED)
+        }
+
+        return mapToFamilyTodoResponse(familyTodo)
     }
 
     /**
@@ -289,5 +309,22 @@ class FamilyTodoService(
                 )
             }
         }
+    }
+
+    /**
+     * FamilyTodoList를 FamilyTodoResponse로 변환
+     */
+    private fun mapToFamilyTodoResponse(familyTodo: FamilyTodoList): FamilyTodoResponse {
+        return FamilyTodoResponse(
+            familyTodoId = familyTodo.id,
+            content = familyTodo.todoList.content,
+            category = familyTodo.todoList.category.description,
+            status = familyTodo.status,
+            assignedAt = familyTodo.assignedAt,
+            dueDate = familyTodo.dueDate,
+            completedAt = familyTodo.completedAt,
+            memo = familyTodo.memo,
+            imageUrl = familyTodo.imageUrl
+        )
     }
 }
