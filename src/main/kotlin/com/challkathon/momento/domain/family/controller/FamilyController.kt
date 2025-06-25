@@ -26,8 +26,8 @@ class FamilyController(
     fun createFamily(
         @AuthenticationPrincipal userPrincipal: UserPrincipal
     ): ResponseEntity<BaseResponse<FamilyCodeResponse>> {
-        val code = familyService.createFamily(userPrincipal.id)
-        return ResponseEntity.ok(BaseResponse.onSuccess(FamilyCodeResponse(code)))
+        val response = familyService.createFamily(userPrincipal.id)
+        return ResponseEntity.ok(BaseResponse.onSuccess(response))
     }
 
     @PostMapping("/join")
@@ -52,7 +52,7 @@ class FamilyController(
     fun getFamilyCode(
         @AuthenticationPrincipal userPrincipal: UserPrincipal
     ): ResponseEntity<BaseResponse<FamilyCodeResponse>> {
-        val code = familyService.getFamilyCode(userPrincipal.id)
-        return ResponseEntity.ok(BaseResponse.onSuccess(FamilyCodeResponse(code)))
+        val response = familyService.getFamilyCode(userPrincipal.id)
+        return ResponseEntity.ok(BaseResponse.onSuccess(response))
     }
 }
