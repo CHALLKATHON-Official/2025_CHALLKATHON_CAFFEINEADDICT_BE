@@ -144,3 +144,25 @@ management:
       enabled: true
     livereload:
       enabled: true
+
+  # Redis 설정 (로컬 개발용)
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: # 로컬 Redis는 비밀번호 없음
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+# ⚠️ 주의: 개발 환경 전용 JWT 설정
+# 운영 환경에서는 절대 사용하지 마세요!
+# 긴 만료 시간은 개발 편의성을 위한 것입니다.
+jwt:
+  # 로컬 개발 환경 - 토큰 재발급 불편 최소화
+  access-token-expiration: 31536000000  # 365일 (1년) - 실질적으로 무한
+  refresh-token-expiration: 63072000000 # 730일 (2년) - 실질적으로 무한
+  # 참고: 1시간 = 3,600,000ms, 1일 = 86,400,000ms, 1년 = 31,536,000,000ms
