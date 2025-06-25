@@ -136,12 +136,12 @@ class FamilyTodoController(
 
     @Operation(
         summary = "최신 Todo 3개 조회", 
-        description = "현재 사용자가 속한 가족의 최신 Todo 3개를 조회합니다. 생성일자 기준 내림차순으로 정렬됩니다."
+        description = "현재 사용자가 속한 가족의 최신 Todo 3개를 조회합니다. Todo가 없으면 null을 반환합니다."
     )
     @GetMapping("/my/todo-lists/recent")
     fun getRecentTodos(
         @AuthenticationPrincipal userPrincipal: UserPrincipal
-    ): ResponseEntity<BaseResponse<List<RecentTodoResponse>>> {
+    ): ResponseEntity<BaseResponse<List<RecentTodoResponse>?>> {
         logger.info { "Getting recent todos for user: ${userPrincipal.id}" }
         
         val recentTodos = familyTodoService.getRecentTodos(userPrincipal.id)

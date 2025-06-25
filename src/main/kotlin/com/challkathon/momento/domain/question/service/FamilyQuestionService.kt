@@ -11,6 +11,7 @@ import com.challkathon.momento.domain.question.dto.response.FamilyQuestionListRe
 import com.challkathon.momento.domain.question.dto.response.FamilyQuestionResponse
 import com.challkathon.momento.domain.question.dto.response.FamilyQuestionSummary
 import com.challkathon.momento.domain.question.dto.response.QuestionDetail
+import com.challkathon.momento.domain.question.dto.response.RecentQuestionResponse
 import com.challkathon.momento.domain.question.entity.Question
 import com.challkathon.momento.domain.question.entity.enums.FamilyQuestionStatus
 import com.challkathon.momento.domain.question.entity.mapping.FamilyQuestion
@@ -22,6 +23,7 @@ import com.challkathon.momento.domain.user.exception.code.UserErrorStatus
 import com.challkathon.momento.domain.user.repository.UserRepository
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -249,5 +251,30 @@ class FamilyQuestionService(
             question = questionDetail,
             answers = memberAnswers
         )
+    }
+
+    /**
+     * 최신 질문 1개 조회
+     */
+    fun getRecentQuestion(userId: Long): RecentQuestionResponse? {
+        val user = userRepository.findById(userId)
+            .orElseThrow { UserException(UserErrorStatus.USER_NOT_FOUND) }
+
+        val family = user.family
+            ?: throw FamilyException(FamilyErrorStatus.FAMILY_DID_NOT_SET)
+
+        val pageable = PageRequest.of(0, 1)
+        val recentQuestions = familyQuestionRepository.findRecentByFamilyId(family.id, pageable)
+
+        return recentQuestions.firstOrNull()?.let { familyQuestion ->
+            RecentQuestionResponse(
+                id = familyQuestion.id,
+                content = familyQuestion.question.content,
+                category = familyQuestion.question.category,
+                status = familyQuestion.status,
+                assignedAt = familyQuestion.assignedAt,
+                isAIGenerated = familyQuestion.question.isAIGenerated
+            )
+        }
     }
 }

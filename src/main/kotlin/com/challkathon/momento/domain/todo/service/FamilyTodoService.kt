@@ -265,7 +265,7 @@ class FamilyTodoService(
      * 최신 Todo 3개 조회
      */
     @Transactional(readOnly = true)
-    fun getRecentTodos(userId: Long): List<RecentTodoResponse> {
+    fun getRecentTodos(userId: Long): List<RecentTodoResponse>? {
         val user = userRepository.findById(userId)
             .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
 
@@ -275,15 +275,19 @@ class FamilyTodoService(
         val pageable = PageRequest.of(0, 3)
         val recentTodos = familyTodoListRepository.findRecentByFamily(family, pageable)
 
-        return recentTodos.map { familyTodo ->
-            RecentTodoResponse(
-                id = familyTodo.id,
-                content = familyTodo.todoList.content,
-                category = familyTodo.todoList.category,
-                status = familyTodo.status,
-                assignedAt = familyTodo.assignedAt,
-                isAIGenerated = familyTodo.todoList.isAIGenerated
-            )
+        return if (recentTodos.isEmpty()) {
+            null
+        } else {
+            recentTodos.map { familyTodo ->
+                RecentTodoResponse(
+                    id = familyTodo.id,
+                    content = familyTodo.todoList.content,
+                    category = familyTodo.todoList.category,
+                    status = familyTodo.status,
+                    assignedAt = familyTodo.assignedAt,
+                    isAIGenerated = familyTodo.todoList.isAIGenerated
+                )
+            }
         }
     }
 }
