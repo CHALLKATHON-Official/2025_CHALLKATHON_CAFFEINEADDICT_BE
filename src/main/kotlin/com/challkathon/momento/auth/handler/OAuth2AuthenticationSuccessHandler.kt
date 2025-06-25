@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import mu.KotlinLogging
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.env.Environment
 import org.springframework.security.core.Authentication
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler
 import org.springframework.stereotype.Component
@@ -22,6 +23,7 @@ class OAuth2AuthenticationSuccessHandler(
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val cookieUtil: CookieUtil,
+    private val environment: Environment,
     @Value("\${app.oauth2.authorized-redirect-uris}")
     private val authorizedRedirectUris: String
 ) : SimpleUrlAuthenticationSuccessHandler() {
@@ -78,18 +80,16 @@ class OAuth2AuthenticationSuccessHandler(
     }
 
     private fun determineFrontendUrl(request: HttpServletRequest): String {
-        // Referer나 특정 헤더를 통해 환경 구분, 또는 환경변수 사용
-        val origin = request.getHeader("Origin")
-        return when {
-            // localhost 환경
-            origin?.contains("localhost:3000") == true -> "http://localhost:3000"
-            // production 환경
-            origin?.contains("dev.caffeineoverdose.shop") == true -> "https://dev.caffeineoverdose.shop"
-            // vercel 운영 환경
-            origin?.contains("momento-neon.vercel.app") == true -> "https://momento-neon.vercel.app"
-            // 기본값 (개발)
-            else -> "http://localhost:3000"
+        val activeProfiles = environment.activeProfiles
+
+        val frontendUrl = when {
+            activeProfiles.contains("dev") -> "https://momento-neon.vercel.app"
+            else -> "http://localhost:3000" // local 또는 기타 환경
         }
+
+        logger.info { "Profile: ${activeProfiles.joinToString()}, Frontend URL: $frontendUrl" }
+
+        return frontendUrl
     }
 
     private fun isAuthorizedRedirectUri(uri: String): Boolean {
