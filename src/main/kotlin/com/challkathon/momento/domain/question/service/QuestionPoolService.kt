@@ -10,7 +10,8 @@ import java.util.concurrent.TimeUnit
 
 @Service
 class QuestionPoolService(
-    private val redisTemplate: RedisTemplate<String, Any>
+    private val redisTemplate: RedisTemplate<String, Any>,
+    private val questionGeneratorService: QuestionGeneratorService
 ) {
     
     private val logger = KotlinLogging.logger {}
@@ -138,8 +139,32 @@ class QuestionPoolService(
      * 질문 풀에 질문 생성 및 저장
      */
     private fun generateQuestionsForPool(category: QuestionCategory, count: Int) {
-        // 실제 구현에서는 ChatGPT API를 호출하여 질문 생성
-        // 여기서는 예시로 미리 정의된 질문 사용
+        try {
+            // QuestionGeneratorService를 사용하여 AI로 질문 생성
+            val generatedQuestions = questionGeneratorService.generateQuestionsForCategory(category, count)
+            
+            val key = "$QUESTION_POOL_KEY:${category.name}"
+            
+            generatedQuestions.forEach { question ->
+                redisTemplate.opsForList().rightPush(key, question)
+            }
+            
+            // TTL 설정 (7일)
+            redisTemplate.expire(key, 7, TimeUnit.DAYS)
+            
+            logger.info { "${category.name} 카테고리에 ${generatedQuestions.size}개 질문 추가 완료 (AI 생성)" }
+            
+        } catch (e: Exception) {
+            logger.error(e) { "AI 질문 생성 실패, 폴백 질문 사용" }
+            // 실패 시 기본 질문 사용
+            generateFallbackQuestions(category, count)
+        }
+    }
+    
+    /**
+     * AI 생성 실패 시 폴백 질문 저장
+     */
+    private fun generateFallbackQuestions(category: QuestionCategory, count: Int) {
         val sampleQuestions = when (category) {
             QuestionCategory.DAILY -> listOf(
                 "오늘 가장 행복했던 순간은 언제였나요?",
@@ -188,6 +213,6 @@ class QuestionPoolService(
         // TTL 설정 (7일)
         redisTemplate.expire(key, 7, TimeUnit.DAYS)
         
-        logger.info { "${category.name} 카테고리에 ${questionsToAdd.size}개 질문 추가 완료" }
+        logger.info { "${category.name} 카테고리에 ${questionsToAdd.size}개 폴백 질문 추가 완료" }
     }
 }

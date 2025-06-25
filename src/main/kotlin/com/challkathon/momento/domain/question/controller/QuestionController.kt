@@ -1,18 +1,20 @@
 package com.challkathon.momento.domain.question.controller
 
+import com.challkathon.momento.auth.security.UserPrincipal
 import com.challkathon.momento.domain.question.dto.response.GeneratedQuestionResponse
 import com.challkathon.momento.domain.question.service.ChatGPTQuestionService
 import com.challkathon.momento.global.common.BaseResponse
-import com.challkathon.momento.auth.security.UserPrincipal
 import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
 import io.swagger.v3.oas.annotations.tags.Tag
-import io.swagger.v3.oas.annotations.media.Content
-import io.swagger.v3.oas.annotations.media.Schema
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/api/v1/questions")
@@ -37,7 +39,8 @@ class QuestionController(
             description = "질문 생성 성공",
             content = [Content(
                 mediaType = "application/json",
-                schema = Schema(example = """
+                schema = Schema(
+                    example = """
                     {
                         "isSuccess": true,
                         "code": "COMMON200",
@@ -50,7 +53,8 @@ class QuestionController(
                             "generatedAt": "2025-01-15T10:30:00"
                         }
                     }
-                """)
+                """
+                )
             )]
         ),
         ApiResponse(
@@ -71,9 +75,9 @@ class QuestionController(
         )
     )
     fun generatePersonalizedQuestion(
-        @AuthenticationPrincipal userPrincipal: UserPrincipal
+        @AuthenticationPrincipal user: UserPrincipal
     ): ResponseEntity<BaseResponse<GeneratedQuestionResponse>> {
-        val generatedQuestion = chatGPTQuestionService.generatePersonalizedQuestion(userPrincipal.id)
+        val generatedQuestion = chatGPTQuestionService.generatePersonalizedQuestion(user.id)
         return ResponseEntity.ok(BaseResponse.onSuccess(generatedQuestion))
     }
 }
