@@ -18,26 +18,69 @@ class QuestionPoolService(
     
     companion object {
         const val QUESTION_POOL_KEY = "question:pool"
-        const val POOL_SIZE_PER_CATEGORY = 20
-        const val MIN_POOL_SIZE = 10
+        const val POOL_SIZE_PER_CATEGORY = 50  // 카테고리별 50개로 증가
+        const val MIN_POOL_SIZE = 15  // 최소 15개 유지
+        const val REFILL_THRESHOLD = 0.3  // 30% 이하일 때 보충
     }
     
     /**
-     * 캐시된 질문을 가져오거나, 없으면 새로 생성
+     * 애플리케이션 시작 시 질문 풀 초기화
      */
-    fun getOrGenerateQuestion(userId: Long, category: QuestionCategory? = null): String {
-        // 1. 먼저 캐시에서 질문 찾기
-        val cachedQuestion = getQuestionFromPool(category)
-        if (cachedQuestion != null) {
-            logger.info { "캐시에서 질문 반환: $cachedQuestion" }
-            return cachedQuestion
+    fun initializePool() {
+        logger.info { "질문 풀 초기화 시작" }
+        
+        QuestionCategory.values().forEach { category ->
+            val key = "$QUESTION_POOL_KEY:${category.name}"
+            val currentSize = redisTemplate.opsForList().size(key) ?: 0
+            
+            if (currentSize < POOL_SIZE_PER_CATEGORY) {
+                logger.info { "$category 카테고리 초기화: 현재 ${currentSize}개, 목표 ${POOL_SIZE_PER_CATEGORY}개" }
+                generateQuestionsForPool(category, POOL_SIZE_PER_CATEGORY - currentSize.toInt())
+            }
+        }
+    }
+    
+    /**
+     * 폴백 질문으로 초기화 (실패 시)
+     */
+    fun initializeWithFallbackQuestions() {
+        logger.info { "AI 생성 실패 - 폴백 질문으로 초기화" }
+        
+        QuestionCategory.values().forEach { category ->
+            generateFallbackQuestions(category, POOL_SIZE_PER_CATEGORY)
+        }
+    }
+    
+    /**
+     * 캐시에서만 질문 가져오기 (항상 성공)
+     */
+    fun getQuestionFromCache(userId: Long, category: QuestionCategory? = null): String {
+        val startTime = System.currentTimeMillis()
+        
+        // 1. 캐시에서 질문 가져오기
+        val question = getQuestionFromPool(category)
+        val responseTime = System.currentTimeMillis() - startTime
+        
+        if (question != null) {
+            logger.debug { "✅ 풀에서 질문 가져옴 (${responseTime}ms, 카테고리: $category): $question" }
+        } else {
+            logger.debug { "⚠️ 풀이 비어있음 - 기본 질문 사용 (카테고리: $category)" }
         }
         
-        // 2. 캐시에 없으면 기본 질문 제공하고 비동기로 풀 채우기
-        fillPoolAsync()
+        val finalQuestion = question ?: getDefaultQuestion(category)
         
-        // 3. 즉시 반환할 기본 질문
-        return getDefaultQuestion(category)
+        // 2. 풀 상태 확인 및 비동기 보충
+        checkAndRefillPoolAsync(category)
+        
+        return finalQuestion
+    }
+    
+    /**
+     * 이전 버전 호환성을 위한 메서드 (deprecated)
+     */
+    @Deprecated("Use getQuestionFromCache instead", ReplaceWith("getQuestionFromCache(userId, category)"))
+    fun getOrGenerateQuestion(userId: Long, category: QuestionCategory? = null): String {
+        return getQuestionFromCache(userId, category)
     }
     
     /**
@@ -120,14 +163,37 @@ class QuestionPoolService(
     }
     
     /**
-     * 스케줄러로 주기적으로 질문 풀 관리
+     * 풀 상태 확인 및 필요 시 비동기 보충
      */
-    @Scheduled(cron = "0 0 2 * * *") // 매일 새벽 2시
-    fun refillQuestionPool() {
-        logger.info { "스케줄러: 질문 풀 재충전 시작" }
+    private fun checkAndRefillPoolAsync(category: QuestionCategory?) {
+        val categories = if (category != null) listOf(category) else QuestionCategory.values().toList()
+        
+        categories.forEach { cat ->
+            val key = "$QUESTION_POOL_KEY:${cat.name}"
+            val currentSize = redisTemplate.opsForList().size(key) ?: 0
+            val threshold = (POOL_SIZE_PER_CATEGORY * REFILL_THRESHOLD).toInt()
+            
+            if (currentSize < threshold) {
+                logger.info { "${cat.name} 카테고리 풀이 낮음: ${currentSize}개 (${threshold}개 미만)" }
+                fillPoolAsync()
+                return // 한 번만 실행
+            }
+        }
+    }
+    
+    /**
+     * 스케줄러로 주기적으로 질문 풀 관리 (5분마다)
+     */
+    @Scheduled(fixedDelay = 300000) // 5분마다 실행 (300,000ms)
+    fun monitorAndRefillQuestionPool() {
+        logger.debug { "질문 풀 모니터링" }
+        
         QuestionCategory.values().forEach { category ->
             val key = "$QUESTION_POOL_KEY:${category.name}"
             val currentSize = redisTemplate.opsForList().size(key) ?: 0
+            val percentage = (currentSize.toDouble() / POOL_SIZE_PER_CATEGORY * 100).toInt()
+            
+            logger.info { "${category.name}: ${currentSize}개 ($percentage%)" }
             
             if (currentSize < POOL_SIZE_PER_CATEGORY) {
                 generateQuestionsForPool(category, POOL_SIZE_PER_CATEGORY - currentSize.toInt())

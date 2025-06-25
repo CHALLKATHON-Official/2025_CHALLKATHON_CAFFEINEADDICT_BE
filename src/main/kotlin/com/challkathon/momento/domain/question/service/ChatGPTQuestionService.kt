@@ -1,11 +1,5 @@
 package com.challkathon.momento.domain.question.service
 
-import com.aallam.openai.api.chat.ChatCompletion
-import com.aallam.openai.api.chat.ChatCompletionRequest
-import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.ChatRole
-import com.aallam.openai.api.model.ModelId
-import com.aallam.openai.client.OpenAI
 import com.challkathon.momento.domain.question.dto.response.GeneratedQuestionResponse
 import com.challkathon.momento.domain.question.entity.Question
 import com.challkathon.momento.domain.question.entity.enums.QuestionCategory
@@ -16,29 +10,19 @@ import com.challkathon.momento.domain.user.entity.User
 import com.challkathon.momento.domain.user.repository.UserRepository
 import com.challkathon.momento.domain.user.exception.UserException
 import com.challkathon.momento.domain.user.exception.code.UserErrorStatus
-import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 import java.time.LocalDateTime
 
+/**
+ * 사용자 맞춤형 질문 서비스
+ * 캐시 우선 정책으로 변경 - 항상 빠른 응답 보장
+ */
 @Service
 @Transactional(readOnly = true)
 class ChatGPTQuestionService(
-    @Value("\${openai.api-key}")
-    private val apiKey: String,
-    
-    @Value("\${openai.model:gpt-4o-mini}")
-    private val model: String,
-    
-    @Value("\${openai.max-tokens:300}")
-    private val maxTokens: Int,
-    
-    @Value("\${openai.temperature:0.8}")
-    private val temperature: Double,
-    
     private val answerHistoryService: AnswerHistoryService,
     private val questionRepository: QuestionRepository,
     private val userQuestionRepository: UserQuestionRepository,
@@ -47,7 +31,6 @@ class ChatGPTQuestionService(
 ) {
     
     private val logger = KotlinLogging.logger {}
-    private val openAI = OpenAI(apiKey)
     
     @Transactional
     fun generatePersonalizedQuestion(userId: Long): GeneratedQuestionResponse {
@@ -60,7 +43,7 @@ class ChatGPTQuestionService(
     @Transactional
     fun generatePersonalizedQuestion(user: User): GeneratedQuestionResponse {
         return try {
-            logger.info { "사용자 ${user.id}를 위한 맞춤형 질문 생성 시작" }
+            logger.info { "🎯 사용자 ${user.id}를 위한 질문 생성 요청 시작" }
             
             // 최근 24시간 내 생성된 질문 확인
             val recentQuestions = userQuestionRepository.findRecentQuestionsByUser(
@@ -73,67 +56,45 @@ class ChatGPTQuestionService(
                 throw IllegalStateException("하루 질문 생성 한도를 초과했습니다. (최대 5개)")
             }
             
-            // 1. 먼저 캐시에서 질문 가져오기 시도 (빠른 응답)
+            // 개인화: 사용자의 답변 히스토리를 기반으로 카테고리 선택
+            val preferredCategory = selectCategoryBasedOnHistory(user)
+            
+            // 항상 캐시에서 질문 가져오기 (즉시 응답)
             val startTime = System.currentTimeMillis()
-            val cachedQuestion = questionPoolService.getOrGenerateQuestion(user.id)
-            val cacheTime = System.currentTimeMillis() - startTime
+            val questionContent = questionPoolService.getQuestionFromCache(user.id, preferredCategory)
+            val responseTime = System.currentTimeMillis() - startTime
             
-            if (cacheTime < 100) {
-                logger.info { "캐시에서 질문 반환 (${cacheTime}ms)" }
-                return saveQuestionAndReturn(cachedQuestion, user, isFromCache = true)
-            }
-            
-            // 2. 캐시에 없으면 AI 생성 (기존 로직)
-            val personalContext = answerHistoryService.generatePersonalizedContext(user)
-            val userPrompt = if (personalContext.isNotEmpty()) {
-                personalContext
-            } else {
-                "이 사용자에게 맞는 따뜻한 가족 질문 1개를 생성해주세요."
-            }
-            
-            val response = runBlocking {
-                openAI.chatCompletion(
-                    ChatCompletionRequest(
-                        model = ModelId(model),
-                        messages = listOf(
-                            ChatMessage(
-                                role = ChatRole.System,
-                                content = getPersonalizedSystemPrompt()
-                            ),
-                            ChatMessage(
-                                role = ChatRole.User,
-                                content = userPrompt
-                            )
-                        ),
-                        maxTokens = maxTokens,
-                        temperature = temperature
-                    )
-                )
-            }
-            
-            val content = response.choices.first().message.content ?: ""
-            val questionContent = parsePersonalizedQuestion(content)
+            logger.info { "✅ 캐시에서 질문 가져옴 (${responseTime}ms, 카테고리: $preferredCategory): $questionContent" }
             
             // 중복 질문 확인
-            val isDuplicate = userQuestionRepository.existsSimilarQuestionRecently(
-                user = user,
-                content = questionContent,
-                startTime = LocalDateTime.now().minusDays(7)
-            )
+            var finalQuestion = questionContent
+            var attempts = 0
+            val maxAttempts = 5
             
-            if (isDuplicate) {
-                logger.info { "중복 질문 감지, 재생성 시도" }
-                return generatePersonalizedQuestion(user) // 재귀 호출로 새 질문 생성
+            while (attempts < maxAttempts) {
+                val isDuplicate = userQuestionRepository.existsSimilarQuestionRecently(
+                    user = user,
+                    content = finalQuestion,
+                    startTime = LocalDateTime.now().minusDays(7)
+                )
+                
+                if (!isDuplicate) {
+                    break
+                }
+                
+                logger.info { "중복 질문 감지, 다른 질문 선택 (${attempts + 1}/${maxAttempts})" }
+                finalQuestion = questionPoolService.getQuestionFromCache(user.id, preferredCategory)
+                attempts++
             }
             
             // 카테고리 분류
-            val category = classifyQuestionCategory(questionContent)
+            val category = classifyQuestionCategory(finalQuestion)
             
             // Question 엔티티 생성 및 저장
             val question = Question(
-                content = questionContent,
+                content = finalQuestion,
                 category = category,
-                isAIGenerated = true,
+                isAIGenerated = false, // 캐시에서 가져왔으므로 false
                 generatedDate = LocalDate.now()
             )
             val savedQuestion = questionRepository.save(question)
@@ -142,63 +103,58 @@ class ChatGPTQuestionService(
             val userQuestion = UserQuestion(
                 user = user,
                 question = savedQuestion,
-                aiModel = model,
+                aiModel = "cached", // 캐시에서 가져온 것임을 표시
                 isAnswered = false
             )
             userQuestionRepository.save(userQuestion)
             
-            logger.info { "사용자 ${user.id}를 위한 맞춤형 질문 생성 및 저장 완료: ${savedQuestion.id}" }
+            logger.info { "💾 사용자 ${user.id}를 위한 질문 저장 완료: ${savedQuestion.id} (총 응답시간: ${responseTime}ms)" }
             
             return GeneratedQuestionResponse.from(savedQuestion)
             
         } catch (e: IllegalStateException) {
+            logger.warn { "⚠️ 사용자 ${user.id} 질문 생성 제한: ${e.message}" }
             throw e
         } catch (e: Exception) {
-            logger.error(e) { "맞춤형 질문 생성 실패" }
+            logger.error(e) { "❌ 질문 가져오기 실패 - 폴백 질문 사용" }
             // 폴백: 미리 정의된 질문 사용
             val fallbackQuestion = createFallbackQuestion()
+            logger.info { "🔄 폴백 질문으로 응답: ${fallbackQuestion.content}" }
             return GeneratedQuestionResponse.from(fallbackQuestion)
         }
     }
     
-    private fun getPersonalizedSystemPrompt(): String {
-        return """
-            # 역할
-            당신은 한국 가족들의 소통을 돕는 맞춤형 질문 생성 전문가입니다.
+    /**
+     * 사용자의 답변 히스토리를 기반으로 카테고리 선택
+     */
+    private fun selectCategoryBasedOnHistory(user: User): QuestionCategory {
+        return try {
+            // 사용자의 최근 답변 패턴 분석
+            val recentAnswers = answerHistoryService.getUserAnswerHistory(user, 10)
             
-            # 기본 규칙
-            1. 질문 길이: 10-50자
-            2. 질문 개수: 정확히 1개만
-            3. 언어: 한국어, 존댓말
-            4. 톤: 따뜻하고 개인적
-            5. 개인화: 사용자의 답변 이력을 반영
+            if (recentAnswers.isEmpty()) {
+                // 답변 히스토리가 없으면 랜덤 카테고리
+                QuestionCategory.values().random()
+            } else {
             
-            # 개인화 원칙
-            - 사용자의 이전 답변에서 나타난 관심사나 성향을 반영
-            - 답변 패턴을 분석하여 더 깊이 있는 질문 생성
-            - 가족 관계 개선에 도움이 되는 방향으로 질문
+            // 간단한 개인화: 가장 적게 답변한 카테고리 선택
+            val categoryCounts = recentAnswers
+                .groupBy { it.familyQuestion.question.category }
+                .mapValues { it.value.size }
             
-            # 출력 형식
-            질문 1개만 생성 (번호나 불필요한 텍스트 없이)
+                // 가장 적게 답변한 카테고리 찾기
+                val leastAnsweredCategory = QuestionCategory.values()
+                    .minByOrNull { categoryCounts[it] ?: 0 }
+                    ?: QuestionCategory.GENERAL
+                
+                logger.debug { "사용자 ${user.id}의 선호 카테고리: $leastAnsweredCategory" }
+                leastAnsweredCategory
+            }
             
-            # 금지 사항
-            - 민감한 주제 (정치, 종교, 돈)
-            - 부정적이거나 갈등 유발 질문
-            - 이전 답변과 완전히 동일한 질문
-        """.trimIndent()
-    }
-    
-    private fun parsePersonalizedQuestion(content: String): String {
-        val question = content.lines()
-            .map { it.trim() }
-            .filter { it.isNotBlank() && it.contains("?") }
-            .firstOrNull()
-            
-        return question ?: getPersonalizedFallbackQuestion()
-    }
-    
-    private fun getPersonalizedFallbackQuestion(): String {
-        return "오늘 하루 중 가장 소중했던 순간은 언제인가요?"
+        } catch (e: Exception) {
+            logger.warn(e) { "카테고리 선택 실패, 랜덤 카테고리 사용" }
+            return QuestionCategory.values().random()
+        }
     }
     
     private fun classifyQuestionCategory(content: String): QuestionCategory {
@@ -234,37 +190,5 @@ class ChatGPTQuestionService(
         )
         
         return questionRepository.save(question)
-    }
-    
-    @Transactional
-    private fun saveQuestionAndReturn(
-        questionContent: String,
-        user: User,
-        isFromCache: Boolean = false
-    ): GeneratedQuestionResponse {
-        // 카테고리 분류
-        val category = classifyQuestionCategory(questionContent)
-        
-        // Question 엔티티 생성 및 저장
-        val question = Question(
-            content = questionContent,
-            category = category,
-            isAIGenerated = !isFromCache,
-            generatedDate = LocalDate.now()
-        )
-        val savedQuestion = questionRepository.save(question)
-        
-        // UserQuestion 매핑 생성 및 저장
-        val userQuestion = UserQuestion(
-            user = user,
-            question = savedQuestion,
-            aiModel = if (isFromCache) "cached" else model,
-            isAnswered = false
-        )
-        userQuestionRepository.save(userQuestion)
-        
-        logger.info { "사용자 ${user.id}를 위한 질문 저장 완료: ${savedQuestion.id} (캐시: $isFromCache)" }
-        
-        return GeneratedQuestionResponse.from(savedQuestion)
     }
 }
