@@ -71,21 +71,16 @@ class User(
     @Column(name = "last_login_at")
     var lastLoginAt: LocalDateTime? = null,
 
-    @Column(name = "email_verified")
-    var emailVerified: Boolean = false,
-
     @Column(name = "is_active")
     var isActive: Boolean = true,
 
-    @Column(name = "refresh_token_version", nullable = false)
-    var refreshTokenVersion: Long = 0,
 
     @Column(name = "refresh_token", length = 1000)
     var refreshToken: String? = null,
-    
+
     @Column(name = "last_active_at")
     var lastActiveAt: LocalDateTime = LocalDateTime.now(),
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "family_id")
     var family: Family? = null,
