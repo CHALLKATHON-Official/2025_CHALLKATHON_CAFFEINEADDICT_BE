@@ -6,5 +6,6 @@ data class UserInfo(
     val username: String,
     val profileImageUrl: String?,
     val familyRole: String?,
-    val familyRoleSelected: Boolean
+    val familyRoleSelected: Boolean,
+    val familyId: Long?
 )
