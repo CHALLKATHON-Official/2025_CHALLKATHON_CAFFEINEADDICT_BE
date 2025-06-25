@@ -1,6 +1,7 @@
 package com.challkathon.momento.domain.story.service
 
-import com.challkathon.momento.auth.exception.UserNotFoundException
+import com.challkathon.momento.auth.exception.AuthException
+import com.challkathon.momento.auth.exception.code.AuthErrorStatus
 import com.challkathon.momento.domain.user.repository.UserRepository
 import com.challkathon.momento.domain.s3.service.AmazonS3Manager
 import com.challkathon.momento.domain.story.Story
@@ -22,7 +23,7 @@ class StoryService(
     @Transactional
     fun createStory(userId: Long, image: MultipartFile) {
         val user = userRepository.findById(userId)
-            .orElseThrow { UserNotFoundException("User not found") }
+            .orElseThrow {AuthException(AuthErrorStatus._USER_NOT_FOUND)}
 
         val imageUrl = amazonS3Manager.uploadFile(image)
         val expiredAt = LocalDateTime.now().plusHours(24)
