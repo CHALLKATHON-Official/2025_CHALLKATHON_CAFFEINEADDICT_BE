@@ -58,21 +58,18 @@ class SecurityConfig(
 
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
+        val configuration = CorsConfiguration().apply {
+            // 환경변수에서 가져온 값 사용
+            allowedOrigins = this@SecurityConfig.allowedOrigins
+            allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD")
+            allowedHeaders = listOf("*")
+            exposedHeaders = listOf("Authorization", "Set-Cookie", "Content-Type")
+            allowCredentials = true
+            maxAge = 3600L
+        }
+
         return UrlBasedCorsConfigurationSource().apply {
-            registerCorsConfiguration("/**", CorsConfiguration().apply {
-                // 명시적으로 허용할 오리진 설정
-                allowedOrigins = listOf(
-                    "http://localhost:3000",
-                    "https://localhost:3000",
-                    "http://127.0.0.1:3000",
-                    "https://momento.vercel.app"
-                )
-                allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
-                allowedHeaders = listOf("*") // 모든 헤더 허용
-                exposedHeaders = listOf("Authorization", "Set-Cookie", "Content-Type")
-                allowCredentials = true
-                maxAge = 3600L
-            })
+            registerCorsConfiguration("/**", configuration)
         }
     }
 }
