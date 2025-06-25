@@ -105,4 +105,12 @@ class User(
         this.family = family
     }
 
+    fun updateName(newName: String) {
+        this.username = newName
+    }
+
+    fun updateProfileImage(newImageUrl: String) {
+        this.profileImageUrl = newImageUrl
+    }
+
 }
