@@ -60,9 +60,17 @@ class SecurityConfig(
         return UrlBasedCorsConfigurationSource().apply {
             registerCorsConfiguration("/**", CorsConfiguration().apply {
                 allowedOriginPatterns = allowedOrigins
-                allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                allowedHeaders = listOf("*")
-                exposedHeaders = listOf("Authorization")
+                allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+                allowedHeaders = listOf(
+                    "Authorization", 
+                    "Content-Type", 
+                    "Accept", 
+                    "Origin", 
+                    "X-Requested-With",
+                    "Access-Control-Request-Method",
+                    "Access-Control-Request-Headers"
+                )
+                exposedHeaders = listOf("Authorization", "Set-Cookie", "Content-Type")
                 allowCredentials = true
                 maxAge = 3600L
             })

@@ -32,6 +32,8 @@ spring:
           lob:
             non_contextual_creation: true
 
+  # OAuth2 설정은 OAuth2Config.kt에서 동적으로 처리됨
+
 # 앱 설정 (로컬 개발용)
 app:
   oauth2:
