@@ -6,7 +6,8 @@ import com.challkathon.momento.domain.user.repository.UserRepository
 import com.challkathon.momento.domain.s3.service.AmazonS3Manager
 import com.challkathon.momento.domain.story.Story
 import com.challkathon.momento.domain.story.dto.response.StoryResponse
-import com.challkathon.momento.domain.story.exception.StoryNotFoundException
+import com.challkathon.momento.domain.story.exception.StoryException
+import com.challkathon.momento.domain.story.exception.code.StoryErrorStatus
 import com.challkathon.momento.domain.story.repository.StoryRepository
 import jakarta.transaction.Transactional
 import org.springframework.stereotype.Service
@@ -38,7 +39,7 @@ class StoryService(
 
     fun getStory(storyId: Long): StoryResponse {
         val story = storyRepository.findById(storyId)
-            .orElseThrow { StoryNotFoundException() }
+            .orElseThrow { StoryException(StoryErrorStatus.STORY_NOT_FOUND) }
 
         return StoryResponse(imageUrl = story.imageUrl)
     }
