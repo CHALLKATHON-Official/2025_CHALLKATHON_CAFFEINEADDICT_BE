@@ -30,7 +30,6 @@ class WebConfig(
             .allowCredentials(true)
             .maxAge(3600)
     }
-
     override fun extendMessageConverters(converters: MutableList<HttpMessageConverter<*>>) {
         // 메시지 컨버터 리스트에 가장 먼저 추가
         converters.add(0, multipartJackson2HttpMessageConverter)

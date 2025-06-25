@@ -1,7 +1,7 @@
-package com.challkathon.momento.domain.s3.service
+package com.challkathon.momento.global.infrastructure
 
-import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.SdkClientException
+import com.amazonaws.services.s3.AmazonS3
 import com.challkathon.momento.domain.s3.exception.S3DeleteException
 import com.challkathon.momento.domain.s3.exception.S3FileNotFoundException
 import com.challkathon.momento.domain.s3.exception.S3UploadException

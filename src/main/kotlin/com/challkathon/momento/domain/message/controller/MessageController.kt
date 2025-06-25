@@ -47,6 +47,4 @@ class MessageController(
         return ResponseEntity.ok(BaseResponse.onSuccess(message))
     }
 
-
-
 }
