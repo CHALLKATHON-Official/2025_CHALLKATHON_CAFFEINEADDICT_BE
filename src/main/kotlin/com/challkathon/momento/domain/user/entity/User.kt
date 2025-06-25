@@ -73,8 +73,7 @@ class User(
 
     @Column(name = "is_active")
     var isActive: Boolean = true,
-
-
+    
     @Column(name = "refresh_token", length = 1000)
     var refreshToken: String? = null,
 
