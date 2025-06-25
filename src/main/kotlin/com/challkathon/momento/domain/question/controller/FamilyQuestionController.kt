@@ -1,7 +1,9 @@
 package com.challkathon.momento.domain.question.controller
 
+import com.challkathon.momento.auth.security.UserPrincipal
 import com.challkathon.momento.domain.question.dto.response.FamilyQuestionListResponse
 import com.challkathon.momento.domain.question.dto.response.FamilyQuestionAnswersResponse
+import com.challkathon.momento.domain.question.dto.response.RecentQuestionResponse
 import com.challkathon.momento.domain.question.service.FamilyQuestionService
 import com.challkathon.momento.global.common.BaseResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -46,6 +48,20 @@ class FamilyQuestionController(
     ): BaseResponse<FamilyQuestionAnswersResponse> {
         val userId = userPrincipal.name.toLong()
         val response = familyQuestionService.getFamilyQuestionAnswers(userId, familyQuestionId)
+        
+        return BaseResponse.onSuccess(response)
+    }
+
+    @Operation(
+        summary = "최신 질문 조회",
+        description = "현재 사용자가 속한 가족의 가장 최신 질문 1개를 조회합니다. 질문이 없으면 null을 반환합니다."
+    )
+    @GetMapping("/recent")
+    fun getRecentQuestion(
+        @Parameter(hidden = true)
+        @AuthenticationPrincipal userPrincipal: UserPrincipal
+    ): BaseResponse<RecentQuestionResponse?> {
+        val response = familyQuestionService.getRecentQuestion(userPrincipal.id)
         
         return BaseResponse.onSuccess(response)
     }

@@ -3,6 +3,7 @@ package com.challkathon.momento.domain.todo.controller
 import com.challkathon.momento.auth.security.UserPrincipal
 // Removed unused imports and DTOs - using simple List<FamilyTodoResponse>
 import com.challkathon.momento.domain.todo.dto.response.FamilyTodoResponse
+import com.challkathon.momento.domain.todo.dto.response.RecentTodoResponse
 import com.challkathon.momento.domain.todo.entity.enums.FamilyTodoStatus
 import com.challkathon.momento.domain.todo.mapping.FamilyTodoList
 import com.challkathon.momento.domain.todo.service.FamilyTodoService
@@ -131,6 +132,21 @@ class FamilyTodoController(
             memo = familyTodo.memo,
             imageUrl = familyTodo.imageUrl
         )
+    }
+
+    @Operation(
+        summary = "최신 Todo 3개 조회", 
+        description = "현재 사용자가 속한 가족의 최신 Todo 3개를 조회합니다. Todo가 없으면 null을 반환합니다."
+    )
+    @GetMapping("/my/todo-lists/recent")
+    fun getRecentTodos(
+        @AuthenticationPrincipal userPrincipal: UserPrincipal
+    ): ResponseEntity<BaseResponse<List<RecentTodoResponse>?>> {
+        logger.info { "Getting recent todos for user: ${userPrincipal.id}" }
+        
+        val recentTodos = familyTodoService.getRecentTodos(userPrincipal.id)
+        
+        return ResponseEntity.ok(BaseResponse.onSuccess(recentTodos))
     }
 
     // 페이징 관련 메서드 제거됨 - 단순 List 반환으로 변경

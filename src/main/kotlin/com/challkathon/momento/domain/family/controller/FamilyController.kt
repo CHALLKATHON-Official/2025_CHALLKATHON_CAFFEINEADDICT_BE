@@ -2,6 +2,7 @@ package com.challkathon.momento.domain.family.controller
 
 import com.challkathon.momento.auth.security.UserPrincipal
 import com.challkathon.momento.domain.family.dto.response.FamilyCodeResponse
+import com.challkathon.momento.domain.family.dto.response.FamilyMemberResponse
 import com.challkathon.momento.domain.family.service.FamilyService
 import com.challkathon.momento.global.common.BaseResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -53,6 +54,18 @@ class FamilyController(
         @AuthenticationPrincipal userPrincipal: UserPrincipal
     ): ResponseEntity<BaseResponse<FamilyCodeResponse>> {
         val response = familyService.getFamilyCode(userPrincipal.id)
+        return ResponseEntity.ok(BaseResponse.onSuccess(response))
+    }
+
+    @GetMapping("/members")
+    @Operation(
+        summary = "가족 구성원 목록 조회",
+        description = "현재 속한 가족의 모든 구성원 정보를 조회합니다. profileImageUrl이 없으면 null을 반환합니다."
+    )
+    fun getFamilyMembers(
+        @AuthenticationPrincipal userPrincipal: UserPrincipal
+    ): ResponseEntity<BaseResponse<List<FamilyMemberResponse>>> {
+        val response = familyService.getFamilyMembers(userPrincipal.id)
         return ResponseEntity.ok(BaseResponse.onSuccess(response))
     }
 }

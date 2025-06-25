@@ -3,6 +3,7 @@ package com.challkathon.momento.domain.family.service
 import com.challkathon.momento.auth.exception.AuthException
 import com.challkathon.momento.auth.exception.code.AuthErrorStatus
 import com.challkathon.momento.domain.family.dto.response.FamilyCodeResponse
+import com.challkathon.momento.domain.family.dto.response.FamilyMemberResponse
 import com.challkathon.momento.domain.family.entity.Family
 import com.challkathon.momento.domain.family.exception.FamilyException
 import com.challkathon.momento.domain.family.exception.code.FamilyErrorStatus
@@ -70,5 +71,24 @@ class FamilyService(
             ?: throw FamilyException(FamilyErrorStatus.FAMILY_NOT_JOINED)
 
         return FamilyCodeResponse(family.inviteCode)
+    }
+
+    fun getFamilyMembers(userId: Long): List<FamilyMemberResponse> {
+        val user = userRepository.findById(userId)
+            .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
+
+        val family = user.family
+            ?: throw FamilyException(FamilyErrorStatus.FAMILY_NOT_JOINED)
+
+        val familyMembers = userRepository.findByFamilyIdAndIsActiveTrue(family.id)
+
+        return familyMembers.map { member ->
+            FamilyMemberResponse(
+                userId = member.id,
+                name = member.username,
+                familyRole = member.familyRole,
+                profileImageUrl = member.profileImageUrl
+            )
+        }
     }
 }

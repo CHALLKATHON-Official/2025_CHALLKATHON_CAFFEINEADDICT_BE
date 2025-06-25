@@ -3,6 +3,7 @@ package com.challkathon.momento.domain.todo.service
 import com.challkathon.momento.domain.family.entity.Family
 import com.challkathon.momento.domain.family.repository.FamilyRepository
 import com.challkathon.momento.domain.todo.TodoList
+import com.challkathon.momento.domain.todo.dto.response.RecentTodoResponse
 import com.challkathon.momento.domain.todo.mapping.FamilyTodoList
 import com.challkathon.momento.domain.todo.repository.FamilyTodoListRepository
 import com.challkathon.momento.domain.todo.repository.TodoListRepository
@@ -13,6 +14,7 @@ import com.challkathon.momento.domain.family.exception.FamilyException
 import com.challkathon.momento.domain.family.exception.code.FamilyErrorStatus
 import com.challkathon.momento.global.infrastructure.AmazonS3Manager
 import mu.KotlinLogging
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.redis.core.RedisTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -257,5 +259,35 @@ class FamilyTodoService(
         }
         
         logger.debug { "파일 유효성 검증 완료: $filename (${image.size}bytes, $contentType)" }
+    }
+
+    /**
+     * 최신 Todo 3개 조회
+     */
+    @Transactional(readOnly = true)
+    fun getRecentTodos(userId: Long): List<RecentTodoResponse>? {
+        val user = userRepository.findById(userId)
+            .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
+
+        val family = user.family
+            ?: throw FamilyException(FamilyErrorStatus.FAMILY_NOT_JOINED)
+
+        val pageable = PageRequest.of(0, 3)
+        val recentTodos = familyTodoListRepository.findRecentByFamily(family, pageable)
+
+        return if (recentTodos.isEmpty()) {
+            null
+        } else {
+            recentTodos.map { familyTodo ->
+                RecentTodoResponse(
+                    id = familyTodo.id,
+                    content = familyTodo.todoList.content,
+                    category = familyTodo.todoList.category,
+                    status = familyTodo.status,
+                    assignedAt = familyTodo.assignedAt,
+                    isAIGenerated = familyTodo.todoList.isAIGenerated
+                )
+            }
+        }
     }
 }

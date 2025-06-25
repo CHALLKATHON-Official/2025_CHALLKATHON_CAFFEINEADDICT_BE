@@ -6,6 +6,7 @@ import com.challkathon.momento.domain.question.entity.QQuestion.question
 import com.challkathon.momento.domain.question.entity.QAnswer.answer
 import com.challkathon.momento.domain.question.entity.enums.FamilyQuestionStatus
 import com.querydsl.jpa.impl.JPAQueryFactory
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Repository
 import java.time.LocalDateTime
 
@@ -77,6 +78,17 @@ class FamilyQuestionRepositoryImpl(
             .join(familyQuestion.family).fetchJoin()
             .where(familyQuestion.family.id.eq(familyId))
             .orderBy(familyQuestion.assignedAt.desc())
+            .fetch()
+    }
+
+    override fun findRecentByFamilyId(familyId: Long, pageable: Pageable): List<FamilyQuestion> {
+        return queryFactory
+            .selectFrom(familyQuestion)
+            .join(familyQuestion.question, question).fetchJoin()
+            .where(familyQuestion.family.id.eq(familyId))
+            .orderBy(familyQuestion.assignedAt.desc())
+            .limit(pageable.pageSize.toLong())
+            .offset(pageable.offset)
             .fetch()
     }
 }
