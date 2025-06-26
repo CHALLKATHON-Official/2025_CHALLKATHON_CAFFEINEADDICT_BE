@@ -40,4 +40,10 @@ class Family(
     fun incrementCount() {
         this.count += 1
     }
+
+    fun decrementCount() {
+        if (this.count > 0) {
+            this.count -= 1
+        }
+    }
 }
