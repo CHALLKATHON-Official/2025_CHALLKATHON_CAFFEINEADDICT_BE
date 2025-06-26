@@ -46,14 +46,90 @@
 - **JWT 기반 인증**: 안전하고 확장 가능한 토큰 기반 인증
 - **자동 로그인 유지**: Refresh Token으로 끊김 없는 사용 경험
 
-## 👥 개발자 소개
+## 👥 팀원 소개
 
 ### CAFFEINEADDICT Team - 2025 CHALLKATHON
 
-| 역할                    | 이름  | GitHub                                           | 담당 영역                                                                                                                     |
-|-----------------------|-----|--------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
-| **Backend Lead**      | 박동규 | [@dong99u](https://github.com/dong99u)           | • AI 질문 생성 시스템 설계<br/>• 성능 최적화 (60초→9ms)<br/>• 전체 백엔드 아키텍처• 사용자 인증/인가 시스템<br/>• OAuth2 소셜 로그인<br/>• 보안 설정<br/>• 데이터베이스 설계 |
-| **Backend Developer** | 이승주 | [@Leeseung-joo](https://github.com/Leeseung-joo) | 이미지 업로드 기능, 가족 코드 생성 및 초대 기능, 스토리 업로드 및 조회 기능, 예약 메시지 생성 기능                                                               |
+<div align="center">
+
+### 🔥 Backend Team
+
+<table>
+<tr>
+<td align="center" width="50%">
+<img src="./images/profile-dongkyu.jpg" width="120" height="120" style="border-radius: 50%; object-fit: cover;">
+<h3>박동규</h3>
+<h4>Backend Lead</h4>
+<p>
+<a href="https://github.com/dong99u">📧 Contact</a>
+</p>
+<p>
+• AI 질문 생성 시스템 설계<br/>
+• 성능 최적화 (60초→9ms)<br/>
+• 전체 백엔드 아키텍처<br/>
+• 사용자 인증/인가 시스템<br/>
+• OAuth2 소셜 로그인<br/>
+• 보안 설정 & 데이터베이스 설계
+</p>
+</td>
+<td align="center" width="50%">
+<img src="./images/profile-seungju.jpeg" width="120" height="120" style="border-radius: 50%; object-fit: cover;">
+<h3>이승주</h3>
+<h4>Backend Developer</h4>
+<p>
+<a href="https://github.com/Leeseung-joo">📧 Contact</a>
+</p>
+<p>
+• 이미지 업로드 기능<br/>
+• 가족 코드 생성 및 초대 기능<br/>
+• 스토리 업로드 및 조회 기능<br/>
+• 예약 메시지 생성 기능
+</p>
+</td>
+</tr>
+</table>
+
+### 🎨 Frontend Team
+
+<table>
+<tr>
+<td align="center" width="50%">
+<img src="./images/profile-nayoung.jpeg" width="120" height="120" style="border-radius: 50%; object-fit: cover;">
+<h3>이나영</h3>
+<h4>Frontend Lead & 기획 & Design</h4>
+<p>
+<a href="mailto:lny021102@gmail.com">📧 Contact</a>
+</p>
+<p>
+• React.js 프론트엔드 개발<br/>
+• UI/UX 구현<br/>
+• 상태관리 최적화<br/>
+• 컴포넌트 아키텍처 설계<br/>
+• 모멘토 프론트엔드 전체 설계<br/>
+• 모멘토 서비스 디자인 및 콘셉트 설계<br/>
+• Next.JS, TypeScript, MUI 활용<br/>
+</p>
+</td>
+<td align="center" width="50%">
+<img src="./images/profile-dahyun.jpeg" width="120" height="120" style="border-radius: 50%; object-fit: cover;">
+<h3>이다현</h3>
+<h4>Design & Project Manager</h4>
+<p>
+<a href="mailto:dlekgus@hufs.ac.kr">📧 Contact</a>
+</p>
+<p>
+• 사용자 경험 중심의 서비스 기획 및 기능 정의<br/>
+• 전체 서비스 플로우 기반의 MVP 설계 및 구조화<br/>
+• IR DECK 제작: 시장 조사, 문제 정의, 비즈니스 모델, 기대효과 등 전 영역 담당<br/>
+• 브랜드 아이덴티티 개발<br />
+• 핵심 가치 도출 및 피칭 스크립트 작성과 발표 준비 총괄<br />
+• 개발팀과의 긴밀한 협업을 통해 서비스 구조 정립 및 린 테스트 검증<br />
+</p>
+</td>
+</tr>
+</table>
+
+</div>
 
 ### 🏆 주요 성과
 
