@@ -200,7 +200,7 @@ momento/
 
 #### 🏗️ 3-Tier 캐싱 전략
 ```mermaid
-graph TD
+flowchart TD
     A[사용자 요청] --> B{Level 1: Redis Cache}
     B -->|캐시 히트 9ms| C[즉시 응답]
     B -->|캐시 미스| D{Level 2: 백그라운드 AI 생성}
@@ -209,10 +209,6 @@ graph TD
     F --> G[Redis에 저장]
     B -->|극한 상황| H{Level 3: Fallback Questions}
     H --> I[미리 정의된 질문]
-    
-    style A fill:#e8f5e8
-    style C fill:#e1f5fe
-    style I fill:#fff8e1
 ```
 
 #### 🎯 스마트 개인화
@@ -565,98 +561,62 @@ release/v1.1.0-beta
 ### ☁️ AWS 기반 인프라 구조
 
 ```mermaid
-graph TB
-    subgraph "사용자"
+flowchart TB
+    subgraph Users [사용자]
         U1[Mobile App Users]
         U2[Web App Users]
     end
     
-    subgraph "GitHub"
+    subgraph GitHub [GitHub]
         GH[GitHub Repository]
         GA[GitHub Actions]
     end
     
-    subgraph "AWS Infrastructure"
-        subgraph "Compute"
-            EC2[EC2 Instance<br/>t3.medium<br/>Ubuntu 20.04]
-        end
-        
-        subgraph "Storage"
-            S3[S3 Bucket<br/>File Storage<br/>Static Assets]
-        end
-        
-        subgraph "Database"
-            RDS[RDS MySQL 8.0<br/>Multi-AZ<br/>Auto Backup]
-            REDIS[Redis<br/>ElastiCache<br/>Question Pool Cache]
-        end
-        
-        subgraph "Network"
-            VPC[VPC<br/>Private Network]
-            SG[Security Groups<br/>Firewall Rules]
-            ELB[Application Load Balancer<br/>Auto Scaling]
-        end
+    subgraph AWS [AWS Infrastructure]
+        EC2[EC2 Instance]
+        S3[S3 Bucket]
+        RDS[RDS MySQL 8.0]
+        REDIS[Redis Cache]
+        ELB[Load Balancer]
     end
     
-    subgraph "External Services"
-        KAKAO[Kakao OAuth2<br/>Social Login]
-        OPENAI[OpenAI GPT-4<br/>Question Generation]
-        LE[Let's Encrypt<br/>SSL Certificate]
+    subgraph External [External Services]
+        KAKAO[Kakao OAuth2]
+        OPENAI[OpenAI GPT-4]
     end
     
-    subgraph "Monitoring"
-        CW[CloudWatch<br/>Metrics & Logs]
-        SNS[SNS Alerts<br/>Slack Integration]
+    subgraph Monitor [Monitoring]
+        CW[CloudWatch]
+        SNS[SNS Alerts]
     end
     
-    %% User Flow
     U1 --> ELB
     U2 --> ELB
     ELB --> EC2
     
-    %% CI/CD Flow  
     GH --> GA
     GA -->|Deploy| EC2
     
-    %% Application Flow
     EC2 --> RDS
     EC2 --> REDIS
     EC2 --> S3
     EC2 --> KAKAO
     EC2 --> OPENAI
     
-    %% Network
-    EC2 --> VPC
-    VPC --> SG
-    
-    %% SSL/Security
-    ELB --> LE
-    
-    %% Monitoring
     EC2 --> CW
     CW --> SNS
-    
-    %% Styling
-    style U1 fill:#e8f5e8
-    style U2 fill:#e8f5e8
-    style EC2 fill:#ff9999
-    style RDS fill:#87ceeb
-    style REDIS fill:#ffb347
-    style S3 fill:#90ee90
-    style GA fill:#dda0dd
-    style OPENAI fill:#ffd700
-    style CW fill:#20b2aa
 ```
 
 ### 🔄 CI/CD 파이프라인
 
 ```mermaid
-graph LR
-    subgraph "Development"
+flowchart LR
+    subgraph Dev [Development]
         DEV[개발자 코드 작성]
-        COMMIT[Git Commit & Push]
+        COMMIT[Git Commit Push]
     end
     
-    subgraph "GitHub Actions"
+    subgraph Actions [GitHub Actions]
         TRIGGER[Trigger on Push]
         BUILD[Gradle Build]
         TEST[Unit Tests]
@@ -664,14 +624,14 @@ graph LR
         DEPLOY[Deploy to EC2]
     end
     
-    subgraph "EC2 Server"
+    subgraph Server [EC2 Server]
         STOP[Stop Old Process]
         BACKUP[Backup Logs]
         START[Start New Process]
         HEALTH[Health Check]
     end
     
-    subgraph "Monitoring"
+    subgraph Monitor [Monitoring]
         SLACK[Slack Notification]
         LOGS[Application Logs]
         METRICS[Performance Metrics]
@@ -690,11 +650,6 @@ graph LR
     HEALTH --> SLACK
     HEALTH --> LOGS
     HEALTH --> METRICS
-    
-    style BUILD fill:#e1f5fe
-    style TEST fill:#e8f5e8
-    style DEPLOY fill:#fff3e0
-    style HEALTH fill:#f3e5f5
 ```
 
 ### 🏗️ 애플리케이션 아키텍처
