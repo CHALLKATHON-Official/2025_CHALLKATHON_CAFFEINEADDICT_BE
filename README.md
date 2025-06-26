@@ -46,9 +46,8 @@
 
 | 역할 | 이름 | GitHub | 담당 영역 |
 |------|------|--------|-----------|
-| **Backend Lead** | 박동규 | [@parkdongkyu](https://github.com/parkdongkyu) | • AI 질문 생성 시스템 설계<br/>• 성능 최적화 (60초→9ms)<br/>• 전체 백엔드 아키텍처 |
+| **Backend Lead** | 박동규 | [@parkdongkyu](https://github.com/dong99u) | • AI 질문 생성 시스템 설계<br/>• 성능 최적화 (60초→9ms)<br/>• 전체 백엔드 아키텍처• 사용자 인증/인가 시스템<br/>• OAuth2 소셜 로그인<br/>• 보안 설정<br/>• 데이터베이스 설계 |
 | **Backend Developer** | 팀원2 | [@member2](https://github.com/member2) | • 사용자 인증/인가 시스템<br/>• OAuth2 소셜 로그인<br/>• 보안 설정 |
-| **Backend Developer** | 팀원3 | [@member3](https://github.com/member3) | • Todo/버킷리스트 시스템<br/>• 파일 업로드 (S3)<br/>• 데이터베이스 설계 |
 
 ### 🏆 주요 성과
 - **🥇 성능 최적화**: AI 질문 생성 응답시간 99.985% 개선 (60초 → 9ms)
@@ -951,24 +950,6 @@ feature branches     ────┘
 🚨 Issue     : 반드시 수정이 필요한 문제
 📚 Knowledge : 참고할 만한 정보 공유
 ```
-
-## 📞 문의 및 지원
-
-### 🔗 링크 모음
-- **🎮 Live Demo**: [https://momento.caffeineaddict.team](https://momento.caffeineaddict.team)
-- **📖 API 문서**: [Swagger UI](https://api.momento.team/swagger-ui.html)
-- **🐛 버그 리포트**: [GitHub Issues](https://github.com/CHALLKATHON-Official/momento/issues)
-- **💬 팀 Discord**: [CaffeineAddict Discord](https://discord.gg/caffeineaddict)
-
-### 📧 연락처
-- **🏆 프로젝트 리드**: parkdongkyu@momento.team
-- **🔧 기술 문의**: tech@momento.team  
-- **📢 일반 문의**: contact@momento.team
-
-### 🏆 수상 및 인정
-- **2025 CHALLKATHON 참가작품**
-- **최우수 성능 최적화상** (99.985% 개선)
-- **기술 혁신상** (Cache-First Architecture)
 
 ---
 
