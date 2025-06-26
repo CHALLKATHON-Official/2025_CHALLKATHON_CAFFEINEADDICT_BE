@@ -57,7 +57,7 @@
 <table>
 <tr>
 <td align="center" width="50%">
-<img src="./images/profile-dongkyu.jpg" width="120" height="120" style="border-radius: 50%; object-fit: cover;">
+<img src="./images/profile-dongkyu.jpg" width="120">
 <h3>박동규</h3>
 <h4>Backend Lead</h4>
 <p>
@@ -73,7 +73,7 @@
 </p>
 </td>
 <td align="center" width="50%">
-<img src="./images/profile-seungju.jpeg" width="120" height="120" style="border-radius: 50%; object-fit: cover;">
+<img src="./images/profile-seungju.jpeg" width="120">
 <h3>이승주</h3>
 <h4>Backend Developer</h4>
 <p>
@@ -94,7 +94,7 @@
 <table>
 <tr>
 <td align="center" width="50%">
-<img src="./images/profile-nayoung.jpeg" width="120" height="120" style="border-radius: 50%; object-fit: cover;">
+<img src="./images/profile-nayoung.jpeg" width="120">
 <h3>이나영</h3>
 <h4>Frontend Lead & 기획 & Design</h4>
 <p>
@@ -111,7 +111,7 @@
 </p>
 </td>
 <td align="center" width="50%">
-<img src="./images/profile-dahyun.jpeg" width="120" height="120" style="border-radius: 50%; object-fit: cover;">
+<img src="./images/profile-dahyun.jpeg" width="120">
 <h3>이다현</h3>
 <h4>Design & Project Manager</h4>
 <p>
