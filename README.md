@@ -9,9 +9,11 @@
 
 ## 📋 서비스 소개
 
-**Momento**는 가족 구성원들이 서로의 일상을 공유하고 소통할 수 있도록 돕는 AI 기반 가족 소통 플랫폼입니다. AI가 생성하는 개인화된 질문을 통해 자연스러운 대화를 유도하고, 가족 간의 유대감을 깊게 만들어갑니다.
+**Momento**는 가족 구성원들이 서로의 일상을 공유하고 소통할 수 있도록 돕는 AI 기반 가족 소통 플랫폼입니다. AI가 생성하는 개인화된 질문을 통해 자연스러운 대화를 유도하고, 가족 간의 유대감을 깊게
+만들어갑니다.
 
 ### 🎯 핵심 가치
+
 - **💬 자연스러운 소통**: AI가 생성하는 맞춤형 질문으로 대화의 시작점 제공
 - **🎨 개인화된 경험**: 가족 구성원과 상황에 맞는 개별화된 콘텐츠
 - **📱 간편한 사용**: 직관적인 UI/UX로 모든 연령대가 쉽게 사용
@@ -20,22 +22,26 @@
 ### ✨ 주요 기능
 
 #### 🤖 AI 기반 질문 생성 시스템
+
 - **OpenAI GPT-4 Assistant** 기반 개인화된 질문 생성
 - **3-Tier 캐싱 전략**으로 **60초 → 9ms (99.985% 성능 개선)** 달성
 - **5가지 카테고리**: 일상, 추억, 미래, 감사, 일반
 - **실시간 질문 풀 관리**로 항상 신선한 질문 제공
 
 #### 👥 가족 중심 소통
+
 - **가족 그룹 관리**: 초대 코드를 통한 간편한 가족 구성
 - **역할 기반 시스템**: 엄마, 아빠, 자녀 등 가족 역할 설정
 - **개인화된 질문**: 가족 구성원과 관계를 고려한 맞춤형 질문
 
 #### 📝 Todo 및 버킷리스트
+
 - **AI 기반 가족 버킷리스트 생성**: 가족 구성원을 고려한 맞춤형 활동 제안
 - **인증샷 기반 완료**: 이미지와 메모로 성취 인증
 - **진행상황 추적**: 가족 구성원 간 서로의 목표 응원
 
 #### 🔐 간편한 인증
+
 - **Kakao OAuth2 로그인**: 복잡한 회원가입 없이 간편 시작
 - **JWT 기반 인증**: 안전하고 확장 가능한 토큰 기반 인증
 - **자동 로그인 유지**: Refresh Token으로 끊김 없는 사용 경험
@@ -44,12 +50,13 @@
 
 ### CAFFEINEADDICT Team - 2025 CHALLKATHON
 
-| 역할 | 이름 | GitHub | 담당 영역 |
-|------|------|--------|-----------|
-| **Backend Lead** | 박동규 | [@parkdongkyu](https://github.com/dong99u) | • AI 질문 생성 시스템 설계<br/>• 성능 최적화 (60초→9ms)<br/>• 전체 백엔드 아키텍처• 사용자 인증/인가 시스템<br/>• OAuth2 소셜 로그인<br/>• 보안 설정<br/>• 데이터베이스 설계 |
-| **Backend Developer** | 팀원2 | [@member2](https://github.com/member2) | • 사용자 인증/인가 시스템<br/>• OAuth2 소셜 로그인<br/>• 보안 설정 |
+| 역할                    | 이름  | GitHub                                           | 담당 영역                                                                                                                     |
+|-----------------------|-----|--------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------|
+| **Backend Lead**      | 박동규 | [@dong99u](https://github.com/dong99u)           | • AI 질문 생성 시스템 설계<br/>• 성능 최적화 (60초→9ms)<br/>• 전체 백엔드 아키텍처• 사용자 인증/인가 시스템<br/>• OAuth2 소셜 로그인<br/>• 보안 설정<br/>• 데이터베이스 설계 |
+| **Backend Developer** | 이승주 | [@Leeseung-joo](https://github.com/Leeseung-joo) | 이미지 업로드 기능, 가족 코드 생성 및 초대 기능, 스토리 업로드 및 조회 기능, 예약 메시지 생성 기능                                                               |
 
 ### 🏆 주요 성과
+
 - **🥇 성능 최적화**: AI 질문 생성 응답시간 99.985% 개선 (60초 → 9ms)
 - **🚀 확장 가능한 아키텍처**: Cache-First 설계로 동시 사용자 1000명+ 지원
 - **🛡️ 안정성**: 3계층 폴백 시스템으로 99.9% 가용성 보장
@@ -58,6 +65,7 @@
 ## 🏗️ 사용 기술 스택
 
 ### Backend
+
 ```
 🔧 Core
 ├── Kotlin 1.9.25           # 메인 언어
@@ -82,6 +90,7 @@
 ```
 
 ### Infrastructure & DevOps
+
 ```
 ☁️ Cloud & Deployment
 ├── AWS EC2                 # 서버 호스팅
@@ -103,6 +112,7 @@
 ## 📁 파일 구조
 
 ### 전체 프로젝트 구조
+
 ```
 momento/
 ├── 📘 README.md                           # 프로젝트 메인 문서
@@ -175,6 +185,7 @@ momento/
 ```
 
 ### 레이어별 아키텍처
+
 ```
 📱 Client Layer (Frontend)
      ↕️ HTTP/HTTPS
@@ -190,14 +201,17 @@ momento/
 ## 🎯 기능별 소개
 
 ### 🤖 AI 질문 생성 시스템
+
 **혁신적인 성능 최적화로 사용자 경험 극대화**
 
 #### 📊 성능 혁신
+
 - **Before**: 첫 질문 생성 60초 (사용자 대기)
 - **After**: 모든 질문 9ms (즉시 응답)
 - **개선율**: 99.985% 성능 향상
 
 #### 🏗️ 3-Tier 캐싱 전략
+
 ```mermaid
 flowchart TD
     A[사용자 요청] --> B{Level 1: Redis Cache}
@@ -211,6 +225,7 @@ flowchart TD
 ```
 
 #### 🎯 스마트 개인화
+
 - **가족 구성원 분석**: 역할, 나이, 관계 고려
 - **상황 맥락 이해**: 시간대, 계절, 이벤트 반영
 - **카테고리별 질문**: DAILY, MEMORY, FUTURE, GRATITUDE, GENERAL
@@ -218,6 +233,7 @@ flowchart TD
 ### 👨‍👩‍👧‍👦 가족 중심 시스템
 
 #### 📲 간편한 가족 구성
+
 ```
 1. 가족 생성 → 고유 초대 코드 발급
 2. 코드 공유 → 가족 구성원 초대
@@ -226,6 +242,7 @@ flowchart TD
 ```
 
 #### 🔗 안전한 프라이빗 공간
+
 - 가족 구성원만 접근 가능한 폐쇄형 그룹
 - 외부 노출 없는 안전한 대화 환경
 - 개인정보 보호 우선 설계
@@ -233,11 +250,13 @@ flowchart TD
 ### ✅ Todo & 버킷리스트
 
 #### 🎨 AI 기반 버킷리스트 생성
+
 - 가족 구성원과 상황을 고려한 맞춤형 활동 제안
 - 실현 가능한 목표와 도전적인 목표의 균형
 - 연령대별, 관심사별 개인화된 추천
 
 #### 📸 인증샷 시스템
+
 - 이미지 + 메모 조합으로 성취 인증
 - 최대 50MB 지원 (JPG, PNG, GIF, WEBP)
 - 가족 구성원 간 응원과 축하 문화 조성
@@ -245,6 +264,7 @@ flowchart TD
 ### 🔐 인증 & 보안
 
 #### 🚀 간편한 소셜 로그인
+
 ```mermaid
 sequenceDiagram
     participant U as 사용자
@@ -266,6 +286,7 @@ sequenceDiagram
 ```
 
 #### 🛡️ 강화된 보안
+
 - **JWT 기반 인증**: Stateless 토큰 방식
 - **Refresh Token**: 자동 로그인 유지
 - **CORS 설정**: 크로스 오리진 보안
@@ -276,6 +297,7 @@ sequenceDiagram
 ### 🎯 Kotlin 스타일 가이드
 
 #### 클래스 설계
+
 ```kotlin
 // ✅ 좋은 예시 - 명확한 책임과 구조
 @Entity
@@ -284,23 +306,23 @@ class FamilyQuestion(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_id")
     val question: Question,
-    
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "family_id")
     val family: Family,
-    
+
     @Column(name = "assigned_at")
     val assignedAt: LocalDateTime = LocalDateTime.now(),
-    
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
     var status: FamilyQuestionStatus = FamilyQuestionStatus.ASSIGNED
 ) : BaseEntity() {
-    
+
     fun complete() {
         this.status = FamilyQuestionStatus.COMPLETED
     }
-    
+
     companion object {
         fun create(question: Question, family: Family): FamilyQuestion {
             return FamilyQuestion(
@@ -313,6 +335,7 @@ class FamilyQuestion(
 ```
 
 #### 서비스 계층 설계
+
 ```kotlin
 // ✅ 좋은 예시 - 명확한 트랜잭션과 책임 분리
 @Service
@@ -322,29 +345,29 @@ class ChatGPTQuestionService(
     private val familyQuestionRepository: FamilyQuestionRepository,
     private val userRepository: UserRepository
 ) {
-    
+
     @Transactional
     fun generatePersonalizedQuestion(user: User): GeneratedQuestionResponse {
         // 1. 캐시에서 질문 조회 (9ms 응답)
         val questionContent = questionPoolService.getQuestionFromCache(
-            userId = user.id, 
+            userId = user.id,
             category = determinePreferredCategory(user)
         )
-        
+
         // 2. 질문 엔티티 생성 및 저장
         val question = Question.create(
             content = questionContent,
             category = category,
             isAIGenerated = true
         )
-        
+
         // 3. 가족에게 질문 할당
         val familyQuestion = FamilyQuestion.create(question, user.family!!)
         val savedQuestion = familyQuestionRepository.save(familyQuestion)
-        
+
         return GeneratedQuestionResponse.from(savedQuestion)
     }
-    
+
     private fun determinePreferredCategory(user: User): QuestionCategory {
         // 사용자 선호도 분석 로직
     }
@@ -352,15 +375,16 @@ class ChatGPTQuestionService(
 ```
 
 #### Repository 계층 (QueryDSL)
+
 ```kotlin
 // ✅ 좋은 예시 - 복잡한 쿼리의 타입 안전성
 @Repository
 class FamilyQuestionRepositoryImpl(
     private val queryFactory: JPAQueryFactory
 ) : FamilyQuestionRepositoryCustom {
-    
+
     override fun findRecentByFamilyId(
-        familyId: Long, 
+        familyId: Long,
         pageable: Pageable
     ): List<FamilyQuestion> {
         return queryFactory
@@ -378,6 +402,7 @@ class FamilyQuestionRepositoryImpl(
 ### 🏗️ 아키텍처 원칙
 
 #### 계층별 책임
+
 ```kotlin
 // Controller: HTTP 요청/응답 처리만
 @RestController
@@ -410,6 +435,7 @@ interface QuestionRepository : JpaRepository<Question, Long>, QuestionRepository
 ```
 
 #### 예외 처리 전략
+
 ```kotlin
 // 도메인별 커스텀 예외
 class QuestionException(
@@ -439,6 +465,7 @@ class GlobalExceptionHandler {
 ### 📝 네이밍 규칙
 
 #### 파일/클래스 네이밍
+
 ```kotlin
 // 컨트롤러
 class FamilyQuestionController          // {Domain}{Feature}Controller
@@ -458,6 +485,7 @@ class CreateUserRequest               // {Action}{Entity}Request
 ```
 
 #### 메서드 네이밍
+
 ```kotlin
 // ✅ 좋은 예시 - 의도가 명확한 네이밍
 fun generatePersonalizedQuestion(user: User): GeneratedQuestionResponse
@@ -476,6 +504,7 @@ fun doSomething(): Result
 ### 🎯 Conventional Commits 2.0
 
 #### 기본 형식
+
 ```
 <type>[optional scope]: <description>
 
@@ -485,18 +514,20 @@ fun doSomething(): Result
 ```
 
 #### 커밋 타입 정의
-| Type | 설명 | 예시 |
-|------|------|------|
-| `feat` | 새로운 기능 추가 | `feat(auth): Kakao OAuth2 로그인 구현` |
-| `fix` | 버그 수정 | `fix(question): 질문 풀 초기화 오류 수정` |
-| `perf` | 성능 개선 | `perf(question): 질문 생성 응답시간 60초→9ms 개선` |
-| `refactor` | 코드 리팩토링 | `refactor(service): FamilyService 메서드 분리` |
-| `docs` | 문서 변경 | `docs: AI 질문 시스템 성능 최적화 문서 추가` |
-| `test` | 테스트 추가/수정 | `test(question): QuestionPoolService 단위 테스트` |
-| `chore` | 빌드/설정 변경 | `chore: Gradle 의존성 업데이트` |
-| `style` | 코드 포맷팅 | `style: Ktlint 규칙 적용` |
+
+| Type       | 설명        | 예시                                           |
+|------------|-----------|----------------------------------------------|
+| `feat`     | 새로운 기능 추가 | `feat(auth): Kakao OAuth2 로그인 구현`            |
+| `fix`      | 버그 수정     | `fix(question): 질문 풀 초기화 오류 수정`              |
+| `perf`     | 성능 개선     | `perf(question): 질문 생성 응답시간 60초→9ms 개선`      |
+| `refactor` | 코드 리팩토링   | `refactor(service): FamilyService 메서드 분리`    |
+| `docs`     | 문서 변경     | `docs: AI 질문 시스템 성능 최적화 문서 추가`               |
+| `test`     | 테스트 추가/수정 | `test(question): QuestionPoolService 단위 테스트` |
+| `chore`    | 빌드/설정 변경  | `chore: Gradle 의존성 업데이트`                     |
+| `style`    | 코드 포맷팅    | `style: Ktlint 규칙 적용`                        |
 
 #### 실제 커밋 메시지 예시
+
 ```bash
 # ✅ 우수한 커밋 메시지
 feat(question): AI 질문 생성 성능 최적화 시스템 구현
@@ -535,6 +566,7 @@ change config
 ```
 
 #### 브랜치 네이밍 전략
+
 ```bash
 # 기능 개발
 feature/question-generation-optimization
@@ -766,17 +798,20 @@ graph TB
 Momento의 **가장 핵심적인 기술적 성과**는 AI 질문 생성 시스템의 **99.985% 성능 개선**입니다.
 
 #### 🚨 문제 상황
+
 - **첫 질문 생성**: 60초 (1분) 대기
-- **후속 질문들**: 9ms 즉시 응답  
+- **후속 질문들**: 9ms 즉시 응답
 - **사용자 경험**: 첫 인상이 매우 나쁨, 앱이 멈춘 것으로 오해
 - **비즈니스 임팩트**: 신규 사용자 이탈률 증가 예상
 
 #### 💡 해결 계기
+
 사용자가 처음 앱을 실행했을 때 **1분간 대기**해야 하는 상황은 절대 용납할 수 없었습니다. "사용자는 절대 기다리지 않는다"는 원칙 하에 근본적인 아키텍처 개선에 착수했습니다.
 
 #### 🔧 핵심 기술: Cache-First 아키텍처 + 3-Tier 전략
 
 **1. 사전 질문 풀 생성 (Pre-warming)**
+
 ```kotlin
 @EventListener(ApplicationReadyEvent::class)
 fun initializeQuestionPoolOnStartup() {
@@ -786,11 +821,13 @@ fun initializeQuestionPoolOnStartup() {
 ```
 
 **2. 3계층 캐싱 전략**
+
 - **Level 1 (Redis Cache)**: 즉시 응답 (9ms), AI 생성 질문 250개 상시 보유
 - **Level 2 (Background Refill)**: 비동기 AI 생성, 사용자와 무관
 - **Level 3 (Fallback Questions)**: 극한 상황 대비 기본 질문
 
 **3. 비동기 백그라운드 보충**
+
 ```kotlin
 // 사용자가 질문을 받는 동시에 백그라운드에서 풀 상태 확인
 private fun checkAndRefillPoolAsync(category: QuestionCategory?) {
@@ -801,16 +838,18 @@ private fun checkAndRefillPoolAsync(category: QuestionCategory?) {
 ```
 
 #### 📈 최종 성과
-| 지표 | 개선 전 | 개선 후 | 개선율 |
-|------|---------|---------|---------|
-| **첫 질문 생성** | 60초 | 9ms | **99.985%** |
-| **일관성** | 불일치 | 항상 9ms | **완전 개선** |
-| **사용자 대기시간** | 60초 | 0초 | **100% 제거** |
-| **동시 사용자 지원** | 100명 제한 | 1000명+ | **10배 향상** |
+
+| 지표            | 개선 전    | 개선 후   | 개선율         |
+|---------------|---------|--------|-------------|
+| **첫 질문 생성**   | 60초     | 9ms    | **99.985%** |
+| **일관성**       | 불일치     | 항상 9ms | **완전 개선**   |
+| **사용자 대기시간**  | 60초     | 0초     | **100% 제거** |
+| **동시 사용자 지원** | 100명 제한 | 1000명+ | **10배 향상**  |
 
 #### 🏗️ 기술적 혁신 포인트
 
 **ApplicationReadyEvent 활용한 완벽한 초기화**
+
 ```kotlin
 // 모든 Bean 초기화 완료 후 실행으로 안정성 보장
 @EventListener(ApplicationReadyEvent::class)
@@ -821,6 +860,7 @@ fun initializeQuestionPoolOnStartup() {
 ```
 
 **Redis 기반 카테고리별 질문 풀 관리**
+
 ```
 question:pool:DAILY     → [50개 질문 상시 보유]
 question:pool:MEMORY    → [50개 질문 상시 보유]
@@ -830,11 +870,13 @@ question:pool:GENERAL   → [50개 질문 상시 보유]
 ```
 
 **장애 복원력 - 3계층 폴백 시스템**
+
 1. **Redis 캐시**: 99% 상황에서 9ms 응답
 2. **Fallback 질문**: Redis 장애 시 미리 정의된 질문
 3. **Emergency 질문**: 모든 장애 상황 대비 최후 보루
 
 #### 🎯 비즈니스 임팩트
+
 - **신규 사용자 경험**: 첫 사용에서 즉시 만족감 제공
 - **서비스 신뢰도**: 일관된 빠른 응답으로 브랜드 신뢰감 증대
 - **확장성**: 사용자 증가에도 성능 저하 없음
@@ -851,6 +893,7 @@ question:pool:GENERAL   → [50개 질문 상시 보유]
 ### 📅 개발 프로세스
 
 #### 🔄 Git Flow 전략
+
 ```
 main (production)     ←─── hotfix/critical-fix
   ↑                        ↗
@@ -860,6 +903,7 @@ feature branches     ────┘
 ```
 
 #### 🎯 Issue 기반 개발
+
 1. **Issue 생성**: 기능/버그를 GitHub Issue로 등록
 2. **브랜치 생성**: `feature/#이슈번호-간단한-설명`
 3. **개발 진행**: 작은 단위로 자주 커밋
@@ -868,8 +912,10 @@ feature branches     ────┘
 6. **병합**: develop → main 순차 병합
 
 #### ✅ Pull Request 체크리스트
+
 ```markdown
 ## 🔍 자가 점검
+
 - [ ] 로컬에서 빌드 및 테스트 성공
 - [ ] 코드 스타일 가이드 준수 (ktlint)
 - [ ] API 문서 업데이트 (변경사항 있는 경우)
@@ -877,12 +923,14 @@ feature branches     ────┘
 - [ ] 보안 이슈 검토 완료
 
 ## 🧪 테스트
+
 - [ ] 단위 테스트 작성/업데이트
 - [ ] 기존 테스트 케이스 모두 통과
 - [ ] 엣지 케이스 고려
 - [ ] 성능 영향도 확인
 
 ## 📖 문서화
+
 - [ ] 코드 주석 적절히 작성
 - [ ] README 업데이트 (필요시)
 - [ ] API 변경사항 문서화
@@ -891,6 +939,7 @@ feature branches     ────┘
 ### 👥 코드 리뷰 가이드
 
 #### 🎯 리뷰 중점사항
+
 1. **아키텍처 일관성**: 계층 분리, 의존성 방향 확인
 2. **성능**: 불필요한 쿼리, 메모리 누수 검토
 3. **보안**: 인증/인가, 입력값 검증 확인
@@ -898,6 +947,7 @@ feature branches     ────┘
 5. **테스트**: 핵심 로직에 대한 테스트 커버리지
 
 #### 💬 리뷰 코멘트 가이드
+
 ```
 🎉 Praise    : 잘 작성된 코드에 대한 칭찬
 🤔 Question  : 궁금한 점이나 의도 확인
