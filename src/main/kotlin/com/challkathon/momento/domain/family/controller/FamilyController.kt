@@ -33,17 +33,18 @@ class FamilyController(
 
     @PostMapping("/join")
     @Operation(
-        summary = "가족 방 참여",
-        description = "초대 코드를 통해 가족 방에 참여합니다."
+        summary = "가족 방 참여 또는 변경",
+        description = "초대 코드를 통해 기존 가족방을 떠나고 새로운 가족방에 참여합니다."
     )
-    fun joinFamily(
+    fun joinOrMoveFamily(
         @AuthenticationPrincipal userPrincipal: UserPrincipal,
         @Parameter(description = "초대 코드", required = true)
         @RequestParam inviteCode: String
     ): ResponseEntity<BaseResponse<String>> {
-        familyService.joinFamily(userPrincipal.id, inviteCode)
-        return ResponseEntity.ok(BaseResponse.onSuccess("가족 방 참여 완료"))
+        familyService.joinOrMoveFamily(userPrincipal.id, inviteCode)
+        return ResponseEntity.ok(BaseResponse.onSuccess("가족 방 참여가 완료되었습니다."))
     }
+
 
     @GetMapping("/code")
     @Operation(

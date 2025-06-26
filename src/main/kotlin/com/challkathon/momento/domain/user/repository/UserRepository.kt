@@ -21,4 +21,7 @@ interface UserRepository : JpaRepository<User, Long> {
     
     @Query("SELECT u FROM User u WHERE u.family.id = :familyId AND u.isActive = true ORDER BY u.createdAt ASC")
     fun findByFamilyIdAndIsActiveTrue(@Param("familyId") familyId: Long): List<User>
+
+    fun countByFamilyIdAndIsActiveTrue(familyId: Long): Int
+
 }
