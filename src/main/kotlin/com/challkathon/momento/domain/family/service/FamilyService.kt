@@ -38,19 +38,29 @@ class FamilyService(
     }
 
     @Transactional
-    fun joinFamily(userId: Long, inviteCode: String) {
+    fun joinOrMoveFamily(userId: Long, inviteCode: String) {
         val user = userRepository.findById(userId)
             .orElseThrow { AuthException(AuthErrorStatus._USER_NOT_FOUND) }
-
-        if (user.family != null) {
-            throw FamilyException(FamilyErrorStatus.FAMILY_ALREADY_JOINED)
-        }
 
         val targetFamily = familyRepository.findByInviteCode(inviteCode)
             ?: throw FamilyException(FamilyErrorStatus.INVITE_CODE_NOT_FOUND)
 
-        user.assignFamily(targetFamily)
+        val currentFamily = user.family
+
+        if (currentFamily != null) {
+            if (currentFamily.id == targetFamily.id) {
+                throw FamilyException(FamilyErrorStatus.ALREADY_IN_THIS_FAMILY)
+            }
+            val memberCount = userRepository.countByFamilyIdAndIsActiveTrue(currentFamily.id)
+            if (memberCount == 1) {
+                familyRepository.delete(currentFamily)
+            } else {
+                currentFamily.decrementCount()
+            }
+        }
+
         targetFamily.incrementCount()
+        user.assignFamily(targetFamily)
     }
 
     private fun generateUniqueCode(): String {
