@@ -1,9 +1,8 @@
 package com.challkathon.momento.domain.story.exception
 
-import com.challkathon.momento.domain.story.exception.code.StoryErrorStatus
 import com.challkathon.momento.global.exception.BaseException
+import com.challkathon.momento.global.exception.code.BaseCodeInterface
 
-// 공통 상위 예외
-open class StoryException(
-    code: StoryErrorStatus,
-) : BaseException(code)
+class StoryException(
+    errorCode: BaseCodeInterface,
+) : BaseException(errorCode)

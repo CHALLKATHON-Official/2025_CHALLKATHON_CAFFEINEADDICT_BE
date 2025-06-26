@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.*
 
 interface MessageRepository : JpaRepository<Message, Long> {
 
@@ -14,6 +13,14 @@ interface MessageRepository : JpaRepository<Message, Long> {
         userId: Long,
         start: LocalDateTime,
         end: LocalDateTime
+    ): List<Message>
+
+    @Query(
+        "SELECT m FROM Message m WHERE m.user.id = :userId AND FUNCTION('DATE', m.reservedAt) = :date"
+    )
+    fun findByUserIdAndDate(
+        @Param("userId") userId: Long,
+        @Param("date") date: LocalDate
     ): List<Message>
 
 }

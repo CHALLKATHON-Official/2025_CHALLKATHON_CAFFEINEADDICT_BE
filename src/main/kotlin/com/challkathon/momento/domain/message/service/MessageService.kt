@@ -37,11 +37,7 @@ class MessageService(
 
 
     fun getMessageList(userId: Long, date: LocalDate): List<MessageResponse> {
-        val messageList = messageRepository.findAllByUserIdAndReservedAtBetween(
-            userId,
-            date.atStartOfDay(),
-            date.plusDays(1).atStartOfDay()
-        )
+        val messageList = messageRepository.findByUserIdAndDate(userId, date)
 
         if (messageList.isEmpty()) {
             throw MessageException(MessageErrorStatus._MESSAGE_NOT_FOUND)
@@ -54,8 +50,6 @@ class MessageService(
                 imageUrl = it.imageUrl
             )
         }
-
-
     }
 
     fun getMessageDetail(userId: Long, messageId: Long): MessageResponse {
