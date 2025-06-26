@@ -15,7 +15,8 @@ import org.springframework.stereotype.Service
 @Service
 class FamilyService(
     private val familyRepository: FamilyRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val storyRepository: com.challkathon.momento.domain.story.repository.StoryRepository
 ) {
 
     @Transactional
@@ -93,11 +94,13 @@ class FamilyService(
         val familyMembers = userRepository.findByFamilyIdAndIsActiveTrue(family.id)
 
         return familyMembers.map { member ->
+            val latestStory = storyRepository.findFirstByUserIdOrderByCreatedAtDesc(member.id)
             FamilyMemberResponse(
                 userId = member.id,
                 name = member.username,
                 familyRole = member.familyRole,
-                profileImageUrl = member.profileImageUrl
+                profileImageUrl = member.profileImageUrl,
+                storyId = latestStory?.id
             )
         }
     }

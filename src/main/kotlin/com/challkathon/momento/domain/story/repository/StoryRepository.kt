@@ -6,4 +6,5 @@ import java.time.LocalDateTime
 
 interface StoryRepository : JpaRepository<Story, Long> {
     fun findAllByExpiredAtBefore(now: LocalDateTime): List<Story>
+    fun findFirstByUserIdOrderByCreatedAtDesc(userId: Long): Story?
 }

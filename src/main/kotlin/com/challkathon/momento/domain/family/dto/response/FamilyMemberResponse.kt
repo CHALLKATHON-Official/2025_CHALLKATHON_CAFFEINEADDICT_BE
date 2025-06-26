@@ -15,5 +15,8 @@ data class FamilyMemberResponse(
     val familyRole: FamilyRole?,
     
     @Schema(description = "프로필 이미지 URL (없으면 null)", example = "https://example.com/profile.jpg", nullable = true)
-    val profileImageUrl: String?
+    val profileImageUrl: String?,
+    
+    @Schema(description = "최신 스토리 ID (없으면 null)", example = "123", nullable = true)
+    val storyId: Long?
 )
