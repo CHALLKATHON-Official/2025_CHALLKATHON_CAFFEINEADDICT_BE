@@ -1038,20 +1038,27 @@ mindmap
 #### 8.1.1 개인화 시스템 목표
 
 ```mermaid
-mindmap
-  root((개인화 목표))
-    사용자 경험
-      답변 연속성 제공
-      개인별 맞춤 질문
-      가족 특성 반영
-    기술적 목표
-      9ms 응답시간 유지
-      개인화 처리 50ms 이하
-      80% 개인화 적용률
-    비즈니스 목표
-      사용자 참여도 증대
-      답변 완성률 향상
-      가족 소통 활성화
+graph LR
+    A[개인화 목표] --> B[사용자 경험]
+    A --> C[기술적 목표]
+    A --> D[비즈니스 목표]
+    
+    B --> B1[답변 연속성 제공]
+    B --> B2[개인별 맞춤 질문]
+    B --> B3[가족 특성 반영]
+    
+    C --> C1[9ms 응답시간 유지]
+    C --> C2[개인화 처리 50ms 이하]
+    C --> C3[80% 개인화 적용률]
+    
+    D --> D1[사용자 참여도 증대]
+    D --> D2[답변 완성률 향상]
+    D --> D3[가족 소통 활성화]
+    
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
 ```
 
 #### 8.1.2 개인화 컨텍스트 분석 요소
@@ -1101,119 +1108,105 @@ data class UserAnswerPattern(
 
 #### 8.2.1 시스템 컴포넌트 구조
 
+**개인화 서비스 레이어:**
 ```mermaid
 graph TB
-    subgraph "사용자 요청 레이어"
-        U[사용자 질문 요청]
-    end
+    U[User Request] --> PQS[PersonalizedQuestionService]
+    PQS --> UCA[UserContextAnalyzer]
+    PQS --> AHS[AnswerHistoryService]
+    PQS --> CGS[ChatGPTQuestionService]
     
-    subgraph "개인화 서비스 레이어"
-        PQS[PersonalizedQuestionService<br/>• 개인화 질문 생성 조율<br/>• 컨텍스트 기반 질문 선택<br/>• 성능 모니터링]
-        UCA[UserContextAnalyzer<br/>• 답변 감정 분석<br/>• 키워드 추출<br/>• 주제 분류]
-        AHS[AnswerHistoryService<br/>• 답변 히스토리 관리<br/>• 패턴 분석<br/>• 컨텍스트 요약]
-    end
-    
-    subgraph "기존 질문 생성 레이어"
-        CGS[ChatGPTQuestionService<br/>• 기존 질문 생성 로직<br/>• 9ms 응답 보장]
-        QPS[QuestionPoolService<br/>• 캐시 관리<br/>• 비동기 풀 보충]
-    end
-    
-    subgraph "AI 생성 레이어"
-        QGS[QuestionGeneratorService<br/>• OpenAI API 연동<br/>• 컨텍스트 기반 프롬프트]
-        OAI[OpenAI Assistant API<br/>• GPT-4 기반 질문 생성<br/>• 컨텍스트 인식]
-    end
-    
-    subgraph "캐시 레이어"
-        PC[(개인화 캐시<br/>personalized:{userId})]
-        UC[(사용자 컨텍스트<br/>user:context:{userId})]
-        RC[(기본 질문 풀<br/>question:pool)]
-    end
-    
-    subgraph "데이터베이스"
-        DB[(MySQL<br/>답변 히스토리)]
-        AC[(Answer Context<br/>분석 결과 저장)]
-    end
-    
-    U --> PQS
-    PQS --> UCA
-    PQS --> AHS
-    PQS --> CGS
-    
-    UCA --> UC
-    AHS --> DB
-    AHS --> AC
-    
-    CGS --> QPS
-    QPS --> RC
-    QPS --> QGS
-    
-    QGS --> OAI
-    
-    PQS --> PC
-    PC --> QGS
+    UCA --> UC[Context Cache]
+    AHS --> DB[(MySQL Database)]
+    CGS --> QPS[QuestionPoolService]
     
     style PQS fill:#e1f5fe
     style UCA fill:#f3e5f5
     style AHS fill:#f3e5f5
-    style PC fill:#e8f5e8
     style UC fill:#e8f5e8
+```
+
+**캐시 및 데이터 레이어:**
+```mermaid
+graph LR
+    PC[Personalized Cache] --> UC[User Context Cache]
+    UC --> RC[Question Pool Cache]
+    RC --> DB[(MySQL Database)]
+    
+    PC --> |backup| RC
+    UC --> |fallback| RC
+    
+    style PC fill:#e1f5fe
+    style UC fill:#f3e5f5
+    style RC fill:#fff3e0
+    style DB fill:#e8f5e8
+```
+
+**AI 생성 및 외부 API:**
+```mermaid
+graph TB
+    QGS[QuestionGeneratorService] --> OAI[OpenAI API]
+    QGS --> PC[Personalized Cache]
+    QGS --> RC[Question Pool Cache]
+    
+    OAI --> |AI Response| QGS
+    
+    style QGS fill:#e1f5fe
     style OAI fill:#fff3e0
+    style PC fill:#e8f5e8
+    style RC fill:#f3e5f5
 ```
 
 #### 8.2.2 개인화 질문 생성 플로우
 
+**캐시 히트 시나리오 (15ms):**
 ```mermaid
-sequenceDiagram
-    participant U as User
-    participant PQS as PersonalizedQuestionService
-    participant UC as UserContextCache
-    participant AHS as AnswerHistoryService
-    participant QGS as QuestionGeneratorService
-    participant AI as OpenAI API
-    participant PC as PersonalizedCache
+graph LR
+    A[User Request] --> B[PersonalizedQuestionService]
+    B --> C[Personalized Cache]
+    C --> |Cache Hit| D[Return Question 15ms]
+    D --> E[Background Pool Check]
     
-    Note over U,PC: 개인화 질문 생성 플로우
+    style C fill:#e8f5e8
+    style D fill:#e1f5fe
+```
+
+**캐시 미스 시나리오 (50ms):**
+```mermaid
+graph TB
+    A[User Request] --> B[PersonalizedQuestionService]
+    B --> C[Personalized Cache]
+    C --> |Cache Miss| D[UserContextCache]
     
-    U->>PQS: 개인화 질문 요청
+    D --> |Context Hit| E[Generate with Context]
+    D --> |Context Miss| F[Analyze User History]
     
-    PQS->>PC: 개인화 캐시 확인
+    F --> G[Extract Keywords & Sentiment]
+    G --> H[Generate Context]
+    H --> E
     
-    alt 개인화 캐시 히트
-        PC-->>PQS: 개인화 질문 반환 (15ms)
-        PQS-->>U: 즉시 응답
-        
-    else 개인화 캐시 미스
-        PQS->>UC: 사용자 컨텍스트 조회
-        
-        alt 컨텍스트 캐시 히트
-            UC-->>PQS: 컨텍스트 요약 반환 (5ms)
-            
-        else 컨텍스트 캐시 미스
-            PQS->>AHS: 답변 히스토리 분석 요청
-            AHS->>AHS: 최근 답변 분석 (100ms)
-            AHS-->>PQS: 컨텍스트 요약 생성
-            PQS->>UC: 컨텍스트 캐시 저장
-        end
-        
-        PQS->>QGS: 컨텍스트 기반 질문 생성 요청
-        QGS->>AI: 개인화 프롬프트로 API 호출
-        AI-->>QGS: 맞춤 질문 생성 (2000ms)
-        QGS-->>PQS: 개인화 질문 반환
-        
-        PQS->>PC: 개인화 캐시에 저장
-        PQS-->>U: 개인화 질문 응답 (총 50ms)
-    end
+    E --> I[OpenAI API Call]
+    I --> J[Cache & Return Question]
     
-    Note over PQS: 백그라운드 캐시 보충
-    PQS->>PQS: 개인화 풀 상태 확인
+    style C fill:#ffebee
+    style D fill:#f3e5f5
+    style E fill:#e1f5fe
+    style J fill:#e8f5e8
+```
+
+**백그라운드 풀 보충:**
+```mermaid
+graph LR
+    A[Pool Monitor] --> B{Pool Size Check}
+    B --> |Low| C[Async Generation]
+    B --> |OK| D[No Action]
     
-    alt 풀 크기 < 임계값
-        PQS->>QGS: 비동기 개인화 질문 생성
-        QGS->>AI: 배치 질문 생성
-        AI-->>QGS: 개인화 질문들 반환
-        QGS-->>PQS: 질문들 전달
-        PQS->>PC: 개인화 풀 보충
-    end
+    C --> E[Batch OpenAI Calls]
+    E --> F[Update Cache Pool]
+    
+    style B fill:#fff3e0
+    style C fill:#e1f5fe
+    style F fill:#e8f5e8
 ```
 
 ### 8.3 사용자 답변 분석 시스템
@@ -1634,47 +1627,48 @@ class PersonalizedQuestionService(
 
 #### 8.5.1 확장된 캐싱 구조
 
+**4-Level 캐시 시스템 아키텍처:**
+
+**Level 1: 개인화 캐시 (Primary)**
+```mermaid
+graph LR
+    A[User Request] --> B[Personalized Cache]
+    B --> C[Daily Questions]
+    B --> D[Memory Questions]
+    B --> E[Future Questions]
+    B --> F[Gratitude Questions]
+    
+    style B fill:#e1f5fe
+    style C fill:#e8f5e8
+    style D fill:#e8f5e8
+    style E fill:#e8f5e8
+    style F fill:#e8f5e8
+```
+
+**Level 2: 사용자 컨텍스트 캐시**
 ```mermaid
 graph TB
-    subgraph "3-Tier + 개인화 캐싱 시스템"
-        subgraph "Level 1: 개인화 캐시 (Primary)"
-            PC1[personalized:{userId}:DAILY]
-            PC2[personalized:{userId}:MEMORY]
-            PC3[personalized:{userId}:FUTURE]
-            PC4[personalized:{userId}:GRATITUDE]
-            PC5[personalized:{userId}:GENERAL]
-        end
-        
-        subgraph "Level 2: 사용자 컨텍스트 캐시"
-            UC[user:context:{userId}]
-            UC --> UCD[감정 분석 결과]
-            UC --> UCK[키워드 추출]
-            UC --> UCT[주제 분류]
-            UC --> UCP[답변 패턴]
-        end
-        
-        subgraph "Level 3: 기본 질문 풀 (Fallback)"
-            RC1[question:pool:DAILY]
-            RC2[question:pool:MEMORY]
-            RC3[question:pool:FUTURE]
-            RC4[question:pool:GRATITUDE]
-            RC5[question:pool:GENERAL]
-        end
-        
-        subgraph "Level 4: 폴백 질문 (Emergency)"
-            FB[하드코딩된 기본 질문들]
-        end
-    end
+    A[User Context Cache] --> B[Sentiment Analysis]
+    A --> C[Keywords Extraction]
+    A --> D[Topic Classification]
+    A --> E[Answer Patterns]
     
-    UR[사용자 요청] --> PC1
-    PC1 -->|캐시 미스| UC
-    UC -->|컨텍스트 없음| RC1
-    RC1 -->|풀 비어있음| FB
+    style A fill:#f3e5f5
+    style B fill:#fff3e0
+    style C fill:#fff3e0
+    style D fill:#fff3e0
+    style E fill:#fff3e0
+```
+
+**Level 3-4: 폴백 시스템**
+```mermaid
+graph LR
+    A[Context Miss] --> B[Basic Question Pool]
+    B --> |Pool Empty| C[Emergency Questions]
     
-    style PC1 fill:#e1f5fe
-    style UC fill:#f3e5f5
-    style RC1 fill:#fff3e0
-    style FB fill:#ffebee
+    style A fill:#ffebee
+    style B fill:#fff3e0
+    style C fill:#ffebee
 ```
 
 #### 8.5.2 성능 측정 및 목표
@@ -1806,38 +1800,45 @@ CREATE TABLE personalization_metrics (
 
 #### 8.7.1 개인화 지표 대시보드
 
+**응답 시간 지표:**
+```mermaid
+graph LR
+    A[Response Time Metrics] --> B[Cache Hit: 15ms]
+    A --> C[Context Analysis: 150ms]
+    A --> D[Average: <50ms]
+    
+    style A fill:#e1f5fe
+    style B fill:#e8f5e8
+    style C fill:#fff3e0
+    style D fill:#f3e5f5
+```
+
+**캐시 효율성 지표:**
 ```mermaid
 graph TB
-    subgraph "개인화 성능 대시보드"
-        subgraph "응답 시간 지표"
-            RT1[개인화 캐시 히트: ~15ms]
-            RT2[컨텍스트 분석: ~150ms]
-            RT3[전체 평균: <50ms]
-        end
-        
-        subgraph "캐시 효율성"
-            CE1[개인화 캐시 히트율: >70%]
-            CE2[컨텍스트 캐시 히트율: >85%]
-            CE3[전체 개인화 적용률: >80%]
-        end
-        
-        subgraph "질문 품질 지표"
-            QQ1[사용자 피드백 평점: >4.0/5.0]
-            QQ2[답변 완성률: 개선 측정]
-            QQ3[연속 참여율: 개선 측정]
-        end
-        
-        subgraph "시스템 부하"
-            SL1[컨텍스트 분석 큐 길이]
-            SL2[Redis 메모리 사용률]
-            SL3[OpenAI API 사용량]
-        end
-    end
+    A[Cache Efficiency] --> B[Personalized Cache Hit: >70%]
+    A --> C[Context Cache Hit: >85%]
+    A --> D[Personalization Rate: >80%]
     
-    style RT1 fill:#e8f5e8
-    style CE1 fill:#e1f5fe
-    style QQ1 fill:#f3e5f5
-    style SL1 fill:#fff3e0
+    style A fill:#e1f5fe
+    style B fill:#e8f5e8
+    style C fill:#e8f5e8
+    style D fill:#e8f5e8
+```
+
+**시스템 부하 및 품질 지표:**
+```mermaid
+graph LR
+    A[System Metrics] --> B[User Feedback: >4.0/5.0]
+    A --> C[Completion Rate]
+    A --> D[API Usage]
+    A --> E[Redis Memory]
+    
+    style A fill:#f3e5f5
+    style B fill:#e8f5e8
+    style C fill:#fff3e0
+    style D fill:#fff3e0
+    style E fill:#fff3e0
 ```
 
 #### 8.7.2 알림 임계값 설정
@@ -1932,122 +1933,89 @@ graph TB
 
 ### 8.9 개인화 시스템 아키텍처 전체 다이어그램
 
+#### 8.9.1 서비스 레이어 아키텍처
+
+**클라이언트 → 서비스 레이어:**
 ```mermaid
 graph TB
-    subgraph "클라이언트 레이어"
-        U[모바일/웹 사용자]
-    end
+    A[Mobile/Web Users] --> B[API Gateway]
+    B --> C[PersonalizedQuestionService]
+    C --> D[UserContextAnalyzer]
+    C --> E[AnswerHistoryService] 
+    C --> F[ChatGPTQuestionService]
     
-    subgraph "API 게이트웨이"
-        GW[API Gateway<br/>로드 밸런서]
-    end
+    style A fill:#e8f5e8
+    style B fill:#f3e5f5
+    style C fill:#e1f5fe
+    style D fill:#fff3e0
+    style E fill:#fff3e0
+    style F fill:#fff3e0
+```
+
+#### 8.9.2 데이터 및 캐시 아키텍처
+
+**다층 캐시 시스템:**
+```mermaid
+graph LR
+    A[Level 1: Personalized Cache] --> B[Level 2: Context Cache]
+    B --> C[Level 3: Question Pool]
+    C --> D[Level 4: Emergency Questions]
     
-    subgraph "개인화 서비스 레이어"
-        PQS[PersonalizedQuestionService<br/>• 개인화 질문 생성 조율<br/>• 응답 시간 50ms 목표<br/>• 다층 폴백 처리]
-        UCA[UserContextAnalyzer<br/>• 답변 감정 분석<br/>• 키워드 추출<br/>• 주제 분류]
-        AHS[AnswerHistoryService<br/>• 답변 히스토리 관리<br/>• 패턴 분석<br/>• 컨텍스트 요약]
-    end
+    A --> E[(Redis)]
+    B --> E
+    C --> E
+    D --> F[(MySQL Database)]
     
-    subgraph "기존 질문 생성 레이어"
-        CGS[ChatGPTQuestionService<br/>• 기존 9ms 응답 보장<br/>• 폴백 처리]
-        QPS[QuestionPoolService<br/>• 기본 질문 풀 관리<br/>• 비동기 보충]
-        QGS[QuestionGeneratorService<br/>• OpenAI API 연동<br/>• 컨텍스트 기반 프롬프트]
-    end
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style C fill:#fff3e0
+    style D fill:#ffebee
+    style E fill:#e8f5e8
+    style F fill:#e0f2f1
+```
+
+#### 8.9.3 AI 및 외부 서비스 통합
+
+**AI 생성 및 백그라운드 처리:**
+```mermaid
+graph TB
+    A[QuestionGeneratorService] --> B[OpenAI API]
+    A --> C[Personalized Cache]
     
-    subgraph "다층 캐시 시스템"
-        subgraph "개인화 캐시 (Level 1)"
-            PC[personalized:{userId}:{category}]
-        end
-        
-        subgraph "컨텍스트 캐시 (Level 2)"
-            UC[user:context:{userId}]
-        end
-        
-        subgraph "기본 풀 (Level 3)"
-            RC[question:pool:{category}]
-        end
-        
-        subgraph "폴백 질문 (Level 4)"
-            FB[Emergency Questions]
-        end
-    end
+    D[Background Scheduler] --> E[Context Analysis]
+    D --> F[Question Pre-generation]
+    D --> G[Cache Warming]
     
-    subgraph "외부 API"
-        OAI[OpenAI API<br/>GPT-4 Assistant<br/>컨텍스트 기반 질문 생성]
-    end
+    H[Monitoring System] --> I[Performance Metrics]
+    H --> J[User Feedback]
     
-    subgraph "데이터베이스 클러스터"
-        subgraph "메인 데이터베이스"
-            DB[(MySQL<br/>질문/답변 저장)]
-        end
-        
-        subgraph "분석 데이터베이스"
-            ADB[(Analysis DB<br/>컨텍스트 분석 결과<br/>사용자 패턴 데이터)]
-        end
-    end
+    style A fill:#e1f5fe
+    style B fill:#fff3e0
+    style C fill:#e8f5e8
+    style D fill:#e0f2f1
+    style H fill:#f9fbe7
+```
+
+#### 8.9.4 폴백 및 복원력 시스템
+
+**장애 대응 플로우:**
+```mermaid
+graph LR
+    A[User Request] --> B{Personalized Cache}
+    B --> |Hit| C[Return 15ms]
+    B --> |Miss| D{Context Cache}
     
-    subgraph "백그라운드 처리"
-        BS[배치 스케줄러<br/>• 컨텍스트 분석<br/>• 개인화 질문 사전 생성<br/>• 캐시 워밍업]
-    end
+    D --> |Hit| E[Generate with Context 25ms]
+    D --> |Miss| F{Basic Pool}
     
-    subgraph "모니터링 시스템"
-        M1[실시간 성능 모니터링]
-        M2[개인화 지표 대시보드]
-        M3[알림 시스템]
-        M4[사용자 피드백 수집]
-    end
+    F --> |Available| G[Return Basic Question 9ms]
+    F --> |Empty| H[Emergency Questions 1ms]
     
-    %% 사용자 요청 플로우
-    U --> GW
-    GW --> PQS
-    
-    %% 개인화 서비스 연결
-    PQS --> PC
-    PQS --> UCA
-    PQS --> AHS
-    PQS --> CGS
-    
-    %% 컨텍스트 분석 플로우
-    UCA --> UC
-    UCA --> ADB
-    AHS --> DB
-    AHS --> ADB
-    
-    %% 질문 생성 플로우
-    PQS --> QGS
-    CGS --> QPS
-    QPS --> RC
-    QGS --> OAI
-    
-    %% 폴백 체인
-    PC -->|캐시 미스| UC
-    UC -->|컨텍스트 없음| RC
-    RC -->|풀 비어있음| FB
-    
-    %% 백그라운드 처리
-    BS --> PQS
-    BS --> UCA
-    BS --> QGS
-    
-    %% 데이터 저장
-    PQS --> DB
-    CGS --> DB
-    
-    %% 모니터링 연결
-    PQS --> M1
-    UCA --> M2
-    QGS --> M3
-    U --> M4
-    
-    %% 스타일링
-    style PQS fill:#e1f5fe
-    style PC fill:#e8f5e8
-    style UC fill:#f3e5f5
-    style RC fill:#fff3e0
-    style FB fill:#ffebee
-    style OAI fill:#fff3e0
-    style BS fill:#e0f2f1
-    style M1 fill:#f9fbe7
+    style A fill:#e8f5e8
+    style C fill:#e1f5fe
+    style E fill:#f3e5f5
+    style G fill:#fff3e0
+    style H fill:#ffebee
 ```
 
 ### 8.10 성과 예측 및 비즈니스 임팩트
